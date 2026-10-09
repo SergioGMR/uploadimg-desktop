@@ -1,37 +1,53 @@
 <p align="center">
-  <img src="docs/assets/brand.svg" alt="Uploadimg Desktop: una imagen, tú decides el siguiente paso" width="960">
+  <img src="docs/assets/brand.svg" alt="UploadIMG: una imagen, tú decides el siguiente paso" width="960">
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/versi%C3%B3n-0.1.0--beta.1-2563eb" alt="Versión 0.1.0-beta.1">
+  <img src="https://img.shields.io/badge/versi%C3%B3n-0.1.0--beta.2-2563eb" alt="Versión 0.1.0-beta.2">
   <img src="https://img.shields.io/badge/macOS-Apple%20Silicon-334155" alt="macOS Apple Silicon">
-  <img src="https://img.shields.io/badge/estado-simulaci%C3%B3n%20local-64748b" alt="Simulación local">
+  <img src="https://img.shields.io/badge/estado-beta-64748b" alt="Beta para macOS">
 </p>
 
 # Tu siguiente imagen, a un clic
 
-Uploadimg Desktop vive en la barra de menús de macOS. Copia una imagen, revisa
+UploadIMG vive en la barra de menús de macOS. Copia una imagen, revisa
 su vista previa y decide qué hacer con ella. La detección del portapapeles es
 opcional y empieza **desactivada en cada inicio**.
 
-**Esta beta es una simulación local:** Compartir genera un enlace ficticio en
-`example.invalid`. No sube imágenes ni crea enlaces públicos accesibles.
+**La beta 0.1.0-beta.2 incorpora subidas reales** a
+`https://uploadimg.vercel.app`: revisa la imagen y pulsa **Compartir** para enviarla.
+El enlace aparece después de que el servidor confirme la publicación y caduca a las 24 horas.
 
 ## Descargar la beta
 
-[**Descargar v0.1.0-beta.1 para macOS arm64**](https://github.com/SergioGMR/uploadimg-desktop/releases/download/v0.1.0-beta.1/Uploadimg-Desktop-0.1.0-beta.1-macos-arm64.dmg)
-· [Notas y SHA256SUMS](https://github.com/SergioGMR/uploadimg-desktop/releases/tag/v0.1.0-beta.1)
+[**Descargar v0.1.0-beta.2 para macOS arm64**](https://github.com/SergioGMR/uploadimg-desktop/releases/download/v0.1.0-beta.2/UploadIMG-0.1.0-beta.2-macos-arm64.dmg)
+· [Notas y SHA256SUMS](https://github.com/SergioGMR/uploadimg-desktop/releases/tag/v0.1.0-beta.2)
 
 1. Descarga el DMG y `SHA256SUMS` desde la misma Release.
-2. Comprueba el archivo: `shasum -a 256 Uploadimg-Desktop-0.1.0-beta.1-macos-arm64.dmg`
+2. Comprueba el archivo: `shasum -a 256 UploadIMG-0.1.0-beta.2-macos-arm64.dmg`
    y compara el resultado con su línea en `SHA256SUMS`.
-3. Abre el DMG y arrastra **Uploadimg Desktop** a **Aplicaciones**.
+3. Abre el DMG y arrastra **UploadIMG** a **Aplicaciones**.
 4. Abre la aplicación y usa su icono de imagen en la barra de menús.
 
-El bundle lleva firma local ad-hoc, sin certificado de distribución Apple ni
+El bundle debug lleva firma local ad-hoc, sin certificado de distribución Apple ni
 notarización. macOS puede bloquear su apertura; si decides continuar tras
 verificar origen y checksum, usa la opción de apertura que ofrezca
 **Ajustes del Sistema → Privacidad y seguridad**.
+
+La [beta.1 histórica](https://github.com/SergioGMR/uploadimg-desktop/releases/tag/v0.1.0-beta.1)
+solo compartía enlaces simulados en `example.invalid`; sus instaladores se conservan.
+
+## Desarrollo local
+
+```sh
+bash desktop/scripts/test.sh
+bash desktop/scripts/build.sh
+open "desktop/.build/UploadIMG.app"
+```
+
+La app se instala como **UploadIMG**, con un icono propio basado en la web.
+El identificador de la aplicación se conserva. Cierra la versión anterior antes de
+abrir o instalar UploadIMG para evitar dos procesos a la vez.
 
 ## Del portapapeles a la vista previa
 
@@ -41,18 +57,21 @@ verificar origen y checksum, usa la opción de apertura que ofrezca
 | Activar detección | Admite nuevas imágenes copiadas y muestra su vista previa. |
 | `Control + Command + Shift + 4` | El atajo de macOS copia una captura al portapapeles. |
 | Pegar imagen | Admite una imagen mediante una acción explícita. |
-| Ignorar / Compartir | Descarta la candidata o crea un resultado simulado. |
+| Ignorar / Compartir | Descarta la candidata o sube la imagen al servicio. |
 | Pausar / Salir | Detiene la detección temporalmente o cierra la aplicación. |
 
 Cerrar la ventana mantiene el proceso en la barra de menús. Las imágenes y los
-resultados viven en memoria; se descartan al terminar el proceso. La aplicación
+resultados y capacidades de recuperación viven en memoria; se descartan al terminar
+el proceso. Las imágenes ya publicadas permanecen en el servidor hasta su caducidad. La aplicación
 no instala un atajo global ni captura la pantalla por su cuenta.
 
 ## Disponibilidad y desarrollo
 
-La evidencia de ejecución cubre **macOS 26.6.2 en Apple Silicon arm64**. La primera
-beta distribuye el bundle debug probado. Windows, Linux, macOS Intel, versiones
-anteriores de macOS, subidas reales y detección de carpetas quedan pendientes.
+La evidencia de ejecución cubre **macOS 26.6.2 en Apple Silicon arm64**. El usuario
+probó el DMG beta.2 en su equipo y confirmó que funciona; no se ha registrado un
+desglose de casos individuales. Se distribuye el bundle debug con firma ad-hoc.
+Windows y Linux no se han ejecutado; macOS Intel, versiones anteriores de macOS
+y detección de carpetas quedan pendientes.
 
 El núcleo está escrito en Rust, la integración macOS en Swift y la interfaz local
 en HTML/CSS/JavaScript con Tauri. Consulta [la aplicación](desktop/README.md),

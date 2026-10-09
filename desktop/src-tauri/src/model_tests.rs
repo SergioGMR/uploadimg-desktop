@@ -184,7 +184,7 @@ fn ipc_snapshot_exposes_only_bounded_preview_and_metadata_never_original_bytes()
     let mut model = Model::new(true);
     model.apply_event(image(0, 0), 0);
     let state = serde_json::to_value(model.snapshot(1)).unwrap();
-    assert_eq!(state["simulation"], true);
+    assert_eq!(state["simulation"], false);
     assert_eq!(state["folderAvailable"], false);
     assert_eq!(state["clipboardEnabled"], false);
     assert_eq!(state["notificationStatus"], "not_requested");
@@ -265,11 +265,11 @@ fn os_notification_action_is_processed_without_get_state_or_frontend_poll() {
         },
         2,
     );
-    assert_eq!(model.core.results().len(), 1);
+    assert!(model.core.results().is_empty());
     assert!(model.previews.is_empty());
     assert!(operations
         .iter()
-        .any(|op| matches!(op, Operation::Notify { result: true, .. })));
+        .any(|op| matches!(op, Operation::Upload { .. })));
     model.apply_event(
         Event::Control {
             kind: 6,
@@ -280,14 +280,23 @@ fn os_notification_action_is_processed_without_get_state_or_frontend_poll() {
         },
         3,
     );
-    assert_eq!(model.core.results().len(), 1);
+    assert!(model.core.results().is_empty());
     assert!(model.result_action("../../path", "copy", 3).is_err());
-    let result = model.core.results()[0].id.clone();
+    let result = "a".repeat(48);
+    model.finish_upload(
+        &model.upload.as_ref().unwrap().id.clone(),
+        crate::upload::Outcome::Ready(crate::upload::PublicResult {
+            id: result.clone(),
+            url: format!("https://uploadimg.vercel.app/i/{result}"),
+            remaining_ms: 86_400_000,
+        }),
+        3,
+    );
     assert!(model
         .result_action(&result, "open arbitrary-url", 3)
         .is_err());
-    model.tick(86_400_002);
-    assert!(model.result_action(&result, "copy", 86_400_002).is_err());
+    model.tick(86_400_003);
+    assert!(model.result_action(&result, "copy", 86_400_003).is_err());
 }
 #[test]
 fn malformed_native_thumbnail_is_rejected_before_ui_state_exposure() {
@@ -324,15 +333,144 @@ fn effect_batches_capture_monotonic_order_and_post_share_identity_without_source
     let shared = model.effect_batch(operations);
     assert!(shared.revision > before.revision);
     assert_eq!(model.generation, generation);
-    assert_eq!(
-        shared.live_ids,
-        vec![format!("result.{}", model.core.results()[0].id)]
+    assert!(shared.live_ids.is_empty());
+    assert!(
+        model.core.results().is_empty(),
+        "Share is consent, not upload success"
     );
+    assert!(shared
+        .operations
+        .iter()
+        .any(|op| matches!(op, Operation::Upload { .. })));
     assert!(!shared.live_ids.contains(&before.live_ids[0]));
     model.tick(86_400_001);
     let expired = model.effect_batch(vec![]);
     assert!(expired.revision > shared.revision);
     assert!(expired.live_ids.is_empty());
+}
+
+#[test]
+fn uploads_are_claimed_once_and_only_matching_completion_creates_a_result() {
+    let mut model = Model::new(true);
+    model.apply_event(image(0, 0), 0);
+    let id = model.core.pending()[0].id.clone();
+    let ops = model.candidate_action(&id, "share", 1).unwrap();
+    assert!(ops.iter().any(|op| matches!(op, Operation::Upload { .. })));
+    assert!(model.candidate_action(&id, "share", 2).is_err());
+    assert!(model.core.results().is_empty());
+    let result = || {
+        crate::upload::Outcome::Ready(crate::upload::PublicResult {
+            id: "a".repeat(48),
+            url: format!("https://uploadimg.vercel.app/i/{}", "a".repeat(48)),
+            remaining_ms: 1000,
+        })
+    };
+    model.finish_upload("wrong", result(), 3);
+    assert!(model.core.results().is_empty());
+    model.set_paused(true, 4);
+    model.finish_upload(&id, result(), 5);
+    assert_eq!(model.core.results().len(), 1);
+    let state = serde_json::to_value(model.snapshot(6)).unwrap();
+    assert!(state["upload"].is_null());
+    assert_eq!(state["results"][0]["fictitious"], false);
+    assert!(model.candidate_action(&id, "share", 7).is_err());
+    model.tick(1005);
+    assert!(model.core.results().is_empty());
+}
+
+#[test]
+fn active_upload_reserves_original_capacity_until_completion() {
+    let mut model = Model::new(true);
+    model.apply_event(image(0, 0), 0);
+    let id = model.core.pending()[0].id.clone();
+    model.candidate_action(&id, "share", 1).unwrap();
+    for n in 2..=4 {
+        let Event::Image(mut event) = image(0, 0) else {
+            unreachable!()
+        };
+        event.digest = [n; 32];
+        model.apply_event(Event::Image(event), n as u64);
+    }
+    assert_eq!(
+        model.core.pending().len(),
+        2,
+        "one original is still held by the upload worker"
+    );
+}
+#[test]
+fn recovery_is_memory_only_and_cannot_authorize_another_candidate() {
+    let mut model = Model::new(true);
+    model.apply_event(image(0, 0), 0);
+    let id = model.core.pending()[0].id.clone();
+    model.candidate_action(&id, "share", 1).unwrap();
+    let ticket=serde_json::from_value(serde_json::json!({"id":"a".repeat(48),"secret":"b".repeat(64),"pathname":format!("uploadimg/v1/staging/{}","a".repeat(48)),"expiresAt":1000000,"tokenExpiresAt":700000})).unwrap();
+    model.finish_upload(&id, crate::upload::Outcome::Recover(ticket), 2);
+    let state = serde_json::to_value(model.snapshot(3)).unwrap();
+    assert_eq!(
+        state["upload"],
+        serde_json::json!({"id":id,"status":"recoverable"})
+    );
+    let serialized = state.to_string();
+    assert!(!serialized.contains(&"b".repeat(64)) && !serialized.contains("staging/"));
+    assert!(model.candidate_action(&"c".repeat(32), "share", 4).is_err());
+    let operations = model.candidate_action(&id, "share", 5).unwrap();
+    assert!(operations.iter().any(|op| matches!(
+        op,
+        Operation::Upload {
+            job: crate::upload::Job::Finalize(_),
+            ..
+        }
+    )));
+    assert!(model.candidate_action(&id, "share", 6).is_err());
+    model.finish_upload(
+        &id,
+        crate::upload::Outcome::Failed("No se pudo confirmar."),
+        7,
+    );
+    assert_eq!(
+        serde_json::to_value(model.snapshot(8)).unwrap()["status"],
+        "No se pudo confirmar."
+    );
+    assert!(serde_json::to_value(model.snapshot(9)).unwrap()["upload"].is_null());
+}
+
+#[test]
+fn explicit_paste_can_retry_a_terminally_failed_image_once_without_disabling_dedup() {
+    let mut model = Model::new(true);
+    model.apply_event(image(0, 2), 0);
+    let id = model.core.pending()[0].id.clone();
+    model.candidate_action(&id, "share", 1).unwrap();
+    model.finish_upload(
+        &id,
+        crate::upload::Outcome::Failed("Pega la imagen de nuevo."),
+        2,
+    );
+    model.core.set_clipboard_enabled(true);
+    model.apply_event(image(0, 1), 3);
+    assert!(
+        model.core.pending().is_empty(),
+        "automatic duplicate must stay suppressed"
+    );
+    model.apply_event(image(0, 2), 4);
+    assert_eq!(
+        model.core.pending().len(),
+        1,
+        "explicit retry must not wait for fingerprint TTL"
+    );
+    assert!(model.core.results().is_empty());
+    model.apply_event(image(0, 2), 5);
+    assert_eq!(
+        model.core.pending().len(),
+        1,
+        "retry allowance must be single use"
+    );
+    let fresh = model.core.pending()[0].id.clone();
+    model.candidate_action(&fresh, "ignore", 6).unwrap();
+    model.apply_event(image(0, 2), 7);
+    assert!(
+        model.core.pending().is_empty(),
+        "Ignore must not grant another retry"
+    );
 }
 
 #[test]

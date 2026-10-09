@@ -35,14 +35,15 @@ fn share_accepts_frozen_owned_bytes_exactly_once() {
     core.admit(ID.into(), immutable, Source::Synthetic, 0, false)
         .unwrap();
     original[0] = 99;
-    let Ok(Effect::Shared(sent, result)) = core.act(ID, CandidateAction::Share, RESULT_ID, 1)
-    else {
+    let Ok(Effect::Shared(sent)) = core.act(ID, CandidateAction::Share, RESULT_ID, 1) else {
         panic!("explicit Share missing")
     };
     assert_eq!(sent.bytes(), &[1, 2, 3]);
-    assert_eq!(result.id, RESULT_ID);
     assert!(core.act(ID, CandidateAction::Share, RESULT_ID, 2).is_err());
-    assert_eq!(core.results().len(), 1);
+    assert!(
+        core.results().is_empty(),
+        "consent must not fabricate a successful upload"
+    );
     assert!(core.pending().is_empty());
 }
 #[test]
@@ -103,6 +104,31 @@ fn duplicate_pixels_across_sources_expire_at_30_seconds() {
     );
     core.admit(ID.into(), image(1), Source::Clipboard, 30_000, false)
         .unwrap();
+}
+#[test]
+fn failed_retry_never_releases_a_newer_fingerprint_or_an_unrelated_image() {
+    let mut core = Core::default();
+    admit(&mut core);
+    core.act(ID, CandidateAction::Share, RESULT_ID, 1).unwrap();
+    core.expire(30_000);
+    let newer = "c".repeat(32);
+    core.admit(newer.clone(), image(1), Source::Synthetic, 30_001, false)
+        .unwrap();
+    core.allow_failed_retry([1; 32], 0);
+    core.act(&newer, CandidateAction::Ignore, "", 30_002)
+        .unwrap();
+    assert_eq!(
+        core.admit(ID.into(), image(1), Source::Clipboard, 30_003, true),
+        Err(Error::Duplicate)
+    );
+    core.admit(ID.into(), image(2), Source::Synthetic, 30_004, false)
+        .unwrap();
+    core.allow_failed_retry([1; 32], 30_001);
+    core.act(ID, CandidateAction::Ignore, "", 30_005).unwrap();
+    assert_eq!(
+        core.admit(ID.into(), image(2), Source::Clipboard, 30_006, true),
+        Err(Error::Duplicate)
+    );
 }
 #[test]
 fn image_bounds_reject_empty_encoded_and_decoded_overflow_accept_boundaries() {
@@ -170,6 +196,13 @@ fn result_body_is_passive_and_copy_open_are_explicit_exact_url_actions() {
     let mut core = Core::default();
     admit(&mut core);
     core.act(ID, CandidateAction::Share, RESULT_ID, 1).unwrap();
+    core.record_result(
+        RESULT_ID.into(),
+        format!("https://uploadimg.vercel.app/i/{RESULT_ID}"),
+        1,
+        86_400_000,
+    )
+    .unwrap();
     assert!(matches!(
         core.result_action(RESULT_ID, ResultAction::Preview, 2),
         Ok(Effect::ShowResult(_))
@@ -182,15 +215,15 @@ fn result_body_is_passive_and_copy_open_are_explicit_exact_url_actions() {
         core.result_action(RESULT_ID, ResultAction::Open, 2),
         Ok(Effect::Open(_))
     ));
-    let expected = format!("https://example.invalid/i/{RESULT_ID}");
+    let expected = format!("https://uploadimg.vercel.app/i/{RESULT_ID}");
     assert!(Core::valid_result(RESULT_ID, &expected));
     for url in [
         expected.replace("https:", "http:"),
-        expected.replace("example.invalid", "evil.invalid"),
+        expected.replace("uploadimg.vercel.app", "evil.invalid"),
         format!("{expected}?query=1"),
         format!("{expected}#fragment"),
-        expected.replace("example.invalid", "u@example.invalid"),
-        expected.replace("example.invalid", "example.invalid:443"),
+        expected.replace("uploadimg.vercel.app", "u@uploadimg.vercel.app"),
+        expected.replace("uploadimg.vercel.app", "uploadimg.vercel.app:443"),
     ] {
         assert!(!Core::valid_result(RESULT_ID, &url));
     }
@@ -205,6 +238,13 @@ fn result_history_is_bounded_and_expires_at_24_hours() {
             .unwrap();
         core.act(&id, CandidateAction::Share, &result_id, n as u64)
             .unwrap();
+        core.record_result(
+            result_id.clone(),
+            format!("https://uploadimg.vercel.app/i/{result_id}"),
+            n as u64,
+            86_400_000,
+        )
+        .unwrap();
     }
     assert_eq!(core.results().len(), 20);
     assert_eq!(core.results()[0].id, format!("{:048x}", 5));

@@ -82,12 +82,12 @@ final class NativeBridge: NSObject, UNUserNotificationCenterDelegate {
         self.callback = callback
         let center = UNUserNotificationCenter.current(); center.delegate = self
         let candidate = UNNotificationCategory(identifier: "CANDIDATE", actions: [
-            UNNotificationAction(identifier: "SHARE", title: "Compartir (simulado)", options: [.foreground]),
+            UNNotificationAction(identifier: "SHARE", title: "Compartir imagen", options: [.foreground]),
             UNNotificationAction(identifier: "IGNORE", title: "Ignorar", options: [])],
             intentIdentifiers: [], options: [.customDismissAction])
         let result = UNNotificationCategory(identifier: "RESULT", actions: [
-            UNNotificationAction(identifier: "COPY", title: "Copiar enlace ficticio", options: []),
-            UNNotificationAction(identifier: "OPEN", title: "Abrir enlace ficticio", options: [.foreground])],
+            UNNotificationAction(identifier: "COPY", title: "Copiar enlace", options: []),
+            UNNotificationAction(identifier: "OPEN", title: "Abrir enlace", options: [.foreground])],
             intentIdentifiers: [], options: [.customDismissAction])
         center.setNotificationCategories([candidate, result])
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in self?.poll() }
@@ -96,8 +96,8 @@ final class NativeBridge: NSObject, UNUserNotificationCenterDelegate {
         tray?.button?.title = ""
         tray?.button?.image = menuBarIcon()
         tray?.button?.imagePosition = .imageOnly
-        tray?.button?.toolTip = "Uploadimg"
-        tray?.button?.setAccessibilityLabel("Uploadimg")
+        tray?.button?.toolTip = "UploadIMG"
+        tray?.button?.setAccessibilityLabel("UploadIMG")
         updateTray()
     }
 
@@ -207,7 +207,7 @@ final class NativeBridge: NSObject, UNUserNotificationCenterDelegate {
     @objc private func quit() { emit(kind: 6, code: 9) }
     private func updateTray() {
         let menu = NSMenu()
-        for (title, action) in [("Abrir Uploadimg Desktop", #selector(show)),
+        for (title, action) in [("Abrir UploadIMG", #selector(show)),
                                  (paused ? "Reanudar" : "Pausar", #selector(togglePause)), ("Salir", #selector(quit))] {
             let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
             item.target = self; menu.addItem(item)
@@ -230,8 +230,8 @@ final class NativeBridge: NSObject, UNUserNotificationCenterDelegate {
               notificationsAllowed, validHex(id, length: result ? 48 : 32),
               !notificationIDs.contains(identifier) else { return }
         let content = UNMutableNotificationContent()
-        content.title = result ? "Enlace ficticio listo · simulación local" : "Imagen lista para compartir · simulación local"
-        content.body = result ? "https://example.invalid/i/\(id)" : "Abrir muestra la vista previa. Compartir solo simula una subida."
+        content.title = result ? "Enlace público temporal listo" : "Imagen lista para compartir"
+        content.body = result ? "https://uploadimg.vercel.app/i/\(id)" : "Abrir muestra la vista previa. Compartir sube la imagen y crea un enlace público temporal."
         content.categoryIdentifier = result ? "RESULT" : "CANDIDATE"
         content.threadIdentifier = result ? "uploadimg-desktop-results" : "uploadimg-desktop-candidates"
         notificationIDs.insert(identifier)
@@ -259,7 +259,7 @@ final class NativeBridge: NSObject, UNUserNotificationCenterDelegate {
         notificationIDs.subtract(stale)
     }
     func resultOperation(id: String, action: Int32) {
-        guard liveIDs.contains("result." + id), validHex(id, length: 48), let url = URL(string: "https://example.invalid/i/\(id)") else { return }
+        guard liveIDs.contains("result." + id), validHex(id, length: 48), let url = URL(string: "https://uploadimg.vercel.app/i/\(id)") else { return }
         if action == 5 {
             NSPasteboard.general.clearContents(); NSPasteboard.general.writeObjects([url.absoluteString as NSString])
         } else if action == 6 { NSWorkspace.shared.open(url) }

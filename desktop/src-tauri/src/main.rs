@@ -1,6 +1,7 @@
 mod events;
 mod model;
 mod native;
+mod upload;
 
 use model::{EffectBatch, Model, Operation, UiState};
 use std::sync::Mutex;
@@ -69,6 +70,21 @@ fn execute(app: &tauri::AppHandle, batch: EffectBatch) {
                 });
             }
             Operation::Quit => app.exit(0),
+            Operation::Upload { id, job } => {
+                let handle = app.clone();
+                std::thread::spawn(move || {
+                    let outcome = upload::run(&mut native::HttpTransport, job, upload::wall_millis);
+                    let state = handle.state::<Runtime>();
+                    let batch = {
+                        let Ok(mut model) = state.model.lock() else {
+                            return;
+                        };
+                        let operations = model.finish_upload(&id, outcome, state.now());
+                        model.effect_batch(operations)
+                    };
+                    execute(&handle, batch);
+                });
+            }
         }
     }
 }

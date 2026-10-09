@@ -1,64 +1,75 @@
 # Release a verified installer
 
-Publish only after source, version metadata and the exact installer have been
-reviewed. The current packager preserves the existing tested debug bundle for
-`0.1.0-beta.1`; it neither builds nor re-signs it. Its local snapshot receipts are
-excluded from Git. A fresh clone can build the app but cannot reproduce this beta's
-packaging checks without those original receipts and bundle.
+The current prerelease is `0.1.0-beta.2`, distributed as **UploadIMG.app** in
+`UploadIMG-0.1.0-beta.2-macos-arm64.dmg`. The published `0.1.0-beta.1` remains
+the historical simulation version; preserve its tag and installer. Commits,
+pushes, tags and release publication need explicit authorization.
 
-## 1. Check the source and version
+The user tested the local beta.2 DMG and reported that it works; individual
+GUI cases were not recorded. That confirmation applies to installer SHA256
+`1a811ad7459ae9d69f923693052228812e2a11b2684c455d558620a1956e203b`.
+Packaging checks, remote publication and download verification are separate evidence.
+
+## 1. Review and check the source
 
 ```sh
 python3 scripts/test-version.py
 python3 scripts/check-version.py --tag "v$(cat VERSION)"
 bash desktop/scripts/test.sh
+python3 desktop/native/Tests/Branding/check.py
+python3 desktop/scripts/tests/test-package-manifest.py
+bash desktop/scripts/build.sh
 git status --short
 ```
 
-Use `VERSION` as the authoritative distribution SemVer. Keep both Cargo package
-versions, Tauri `version` and plist `CFBundleShortVersionString` equal to its numeric
-base; keep a matching changelog heading. Commit all intended source/docs/checks,
-review the commit and require a clean worktree before tagging `v<VERSION>`.
-Record the full source commit, tag and check results in the release notes.
+`VERSION` is the distribution SemVer. Cargo, Tauri and the plist short version
+use its numeric base; the plist build number identifies the new bundle.
+Review the exact source and built artifact independently. Observe startup,
+menu behavior, preview, explicit sharing and opt-in detection with synthetic
+data; report device and upload checks separately from automated checks.
+Before publishing, commit and review intended changes and require a clean
+worktree for the exact `v<VERSION>` tag.
 
-## 2. Package the exact tested bundle
+## 2. Package the reviewed local bundle
+
+After its build and checks finish:
 
 ```sh
 bash desktop/scripts/package-dmg.sh
-cd desktop/.build/distribution
+cd "desktop/.build/distribution/$(cat VERSION)" # run from repository root
 shasum -a 256 -c SHA256SUMS
 ```
 
-The script verifies the recorded beta bundle, portable dependencies, ad-hoc
-signatures and arm64 architecture; mounts the DMG read-only, compares bundle bytes,
-then detaches it. It refuses existing outputs. A retry uses a new subdirectory
-inside `desktop/.build/distribution`; never overwrite an existing artifact.
-The bundle evidence predates repository initialization: `provenance.json` records
-its source snapshot and file hashes, with `packaged_source_commit` initially null.
-After the publication/packaging source commit is reviewed, record its full SHA in
-`packaged_source_commit` and recompute the `provenance.json` entry in `SHA256SUMS`
-before uploading. Do not alter the DMG. This SHA identifies the published packaging
-sources; it does not claim that the pre-Git bundle was compiled from that commit.
-Release notes must distinguish the original snapshot from the later public commit.
+The script reads `VERSION`, packages the existing debug `UploadIMG.app`, and
+never rebuilds or re-signs it. The default output is
+`desktop/.build/distribution/<VERSION>/UploadIMG-<VERSION>-macos-arm64.dmg`.
+It refuses existing outputs; a retry accepts a new subdirectory inside
+`desktop/.build/distribution`. Preserve failed staging/attachment receipts
+until inspected. Never overwrite a published artifact.
 
-For subsequent releases, prepare the packaging procedure for the new source
-boundary, build the intended release-profile artifact, and validate that exact
-artifact at runtime before publication. Check install/open, menu behavior, image
-preview, explicit sharing and opt-in detection with synthetic test data. Record
-results separately from automated checks. Never claim untested platforms.
+Checks cover current source/bundle metadata and icon, arm64 binaries,
+portable dependencies/rpaths and ad-hoc signatures. The script verifies the
+UDZO image, mounts it read-only, compares bundle hashes and installation
+notes, checks the Applications symlink, and detaches the exact device.
+`SHA256SUMS` covers the DMG and `provenance.json`.
 
-## 3. Draft, upload, then publish
+Provenance records packaging-time Git HEAD, dirty status, a digest and hashes
+of tracked/nonignored source files, plus the complete bundle file manifest.
+`compiled_source_commit` remains null: packaging-time sources do not prove
+which sources compiled a prebuilt bundle. Keep build/review/runtime receipts
+for the same source and artifact boundary; do not edit provenance to imply
+a clean-commit build. DMG bytes can vary between runs.
 
-1. Create and push the reviewed commit and exact tag only with explicit authorization.
-2. Create a **draft prerelease** for `v0.1.0-beta.1` in `SergioGMR/uploadimg-desktop`.
-3. Upload `Uploadimg-Desktop-0.1.0-beta.1-macos-arm64.dmg`, `SHA256SUMS` and
-   `provenance.json` from the verified output directory. Never use asset clobber.
-4. Include the changelog, source commit, debug profile, macOS 26.6.2 arm64 evidence,
-   simulation limits, ad-hoc signing and absent Apple notarization in the notes.
-5. Verify draft metadata and the uploaded asset set before publishing the prerelease.
-6. Download the published assets into a new temporary directory; compare each
-   downloaded file byte-for-byte with its local original and verify `SHA256SUMS`.
+## 3. Draft, upload and verify downloads
+
+1. With explicit authorization, push the reviewed commit and exact version tag.
+2. Create a draft prerelease for `v<VERSION>` in `SergioGMR/uploadimg-desktop`.
+3. Upload the new DMG, `SHA256SUMS` and `provenance.json` without asset clobber.
+4. Include the changelog, source/artifact identities, debug profile, actual
+   macOS/device/upload checks, ad-hoc signing and absent notarization.
+5. Verify draft metadata/assets, then publish only within the authorized task.
+6. Download all published assets to a new directory, compare their bytes to
+   the local originals, and verify `SHA256SUMS`.
 
 Download integrity does not establish installed runtime or Gatekeeper behavior.
-Record those checks explicitly. If an installer is wrong, withdraw the release and
-publish a corrected version with a new tag; never silently replace published bytes.
+An incorrect published installer requires a new version and tag.

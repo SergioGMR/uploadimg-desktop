@@ -1,15 +1,60 @@
-# Desktop interface
+# UploadIMG desktop interface
 
-Bundled static Spanish UI; no frontend build or npm dependencies. Load `index.html` inside the Tauri application with `withGlobalTauri: true`. A normal browser shows an inactive native-app notice and never fabricates candidates or results.
+Bundled Spanish UI with no frontend build or npm dependencies. Load
+`index.html` in Tauri with `withGlobalTauri: true`. A normal browser shows an
+inactive native-app notice and never fabricates candidates or results.
 
-`app.mjs` calls only `window.__TAURI__.core.invoke`. `bridge.mjs` validates command names/arguments, serializes requests, coalesces timer polls and discards pre-action polling snapshots. Failed actions keep their visible error until a successful explicit action. `state.mjs` accepts the bounded simulated state contract and strips unsupported thumbnails. The DOM preserves cards across countdown updates and inserts strings with `textContent`; result URLs are text, with Copy/Open delegated by opaque ID.
+**Compartir** sends the selected image to `https://uploadimg.vercel.app`
+through the backend and creates a public link that expires after 24 hours.
+Detection, preview and polling never authorize an upload. Clipboard detection
+starts OFF; folder monitoring is unavailable. Name/title and the image glyph
+match UploadIMG branding.
 
-Commands: `get_state`, `generate_synthetic`, `set_clipboard_enabled({ enabled })`, `paste_image`, `set_paused({ paused })`, `request_notifications`, `candidate_action({ id, action: preview|share|ignore })`, `result_action({ id, action: copy|open })`. Each returns the documented `UiState`; permission requests and Share/Copy/Open always follow clicks. Poll interval: one second, without overlapping native invokes.
+## State and actions
 
-The shell requires CSP to allow local scripts/styles and `img-src data:` for Rust-prepared PNG thumbnails. No inline JavaScript/styles, remote assets, web clipboard calls or frontend network requests. Folder monitoring is shown as pending; other platform availability comes from native state. System color preference controls light/dark styling.
+`state.mjs` validates `simulation: false`, bounded pending/results arrays,
+32-character lowercase hexadecimal candidate IDs and 48-character result IDs.
+Every result must have `fictitious: false`, a URL exactly equal to
+`https://uploadimg.vercel.app/i/<result ID>`, and an expiration of at most
+86,400 seconds. Unsupported thumbnail sources are stripped.
 
-Thumbnails accept PNG dimensions up to 512 pixels per edge and at most 1,100,000 decoded PNG bytes. The exact maximum data URL length is 1,466,690 characters including the MIME prefix; the adapter checks base64 padding to enforce the byte cap and decodes only the header for PNG/dimension validation.
+`upload` is null or `{ id: <candidate ID>, status: "uploading" | "recoverable" }`.
+An active upload disables all candidate Share buttons. The separate upload
+panel remains available after the candidate leaves the pending list.
+**Recuperar enlace** is enabled only for `recoverable` and invokes
+`candidate_action({ id: upload.id, action: "share" })`: the backend finalizes
+the existing ticket without uploading the image again. Recovery state is
+in memory and is lost on restart.
 
-Run `node --test desktop/ui/tests/*.test.mjs` from the repository root. RED and GREEN receipts are in `evidence/`; they establish adapter/state behavior, not native clipboard, permissions, WebView rendering or platform runtime support. Actual Tauri GUI validation belongs to the parent after the native build.
+Commands: `get_state`, `generate_synthetic`,
+`set_clipboard_enabled({ enabled })`, `paste_image`, `set_paused({ paused })`,
+`request_notifications`, `candidate_action({ id, action: preview|share|ignore })`
+and `result_action({ id, action: copy|open })`. Copy/Open receive only opaque
+result IDs. URLs are inserted with `textContent`; the UI does not navigate
+to caller-provided URLs or make network requests.
 
-Rollback boundary: remove `desktop/ui/` as one interface unit; backend ownership and the original native probe are separate. No commit or remote delivery is included.
+`bridge.mjs` validates command arguments, serializes invokes, coalesces
+one-second polls and discards snapshots started before an action. Failed
+actions preserve their visible error through polls until a successful
+explicit action. Cards/buttons retain their DOM identity during countdown
+updates. Permission requests and sharing/recovery/copy/open require clicks.
+
+## Checks and limits
+
+```sh
+node --test desktop/ui/tests/*.test.mjs
+```
+
+Tests cover the state/IPC guards, request ordering, error persistence and
+upload/recovery controls using a small DOM fixture. They are not evidence
+of WebView rendering, native clipboard/permissions or real network uploads.
+The parent validates the built native application separately.
+
+The UI keeps the existing CSP/IPC contract: local scripts/styles, bounded
+PNG data thumbnails, no frontend networking or remote assets. Thumbnail
+limits remain 512 pixels per edge and 1,100,000 decoded PNG bytes; base64
+padding enforces the byte cap and only the PNG header is decoded for guards.
+System color preference controls light/dark styling.
+
+Rollback of this slice restores the UI files and matching tests; backend
+upload ownership is a separate unit. No commit or remote delivery is included.

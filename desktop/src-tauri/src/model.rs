@@ -20,6 +20,19 @@ pub struct UiState {
     results: Vec<ResultSummary>,
     selected_candidate_id: Option<String>,
     selected_result_id: Option<String>,
+    upload: Option<UploadSummary>,
+}
+#[derive(Serialize)]
+struct UploadSummary {
+    id: String,
+    status: &'static str,
+}
+struct ActiveUpload {
+    id: String,
+    recovery: Option<crate::upload::Ticket>,
+    original_bytes: usize,
+    digest: [u8; 32],
+    admitted_at: u64,
 }
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -61,6 +74,10 @@ pub enum Operation {
         candidate_id: Option<String>,
     },
     Quit,
+    Upload {
+        id: String,
+        job: crate::upload::Job,
+    },
 }
 pub struct EffectBatch {
     pub revision: u64,
@@ -79,13 +96,14 @@ pub struct Model {
     notifications: String,
     status: String,
     native_available: bool,
+    upload: Option<ActiveUpload>,
 }
 impl Model {
     pub fn new(native_available: bool) -> Self {
         Self { delivery_revision: 0, core: Core::default(), generation: 0, lifecycle: 0, previews: HashMap::new(), selected_candidate: None,
             selected_result: None, notifications: if native_available { "not_requested" } else { "unavailable" }.into(),
-            status: if native_available { "Simulación local. Portapapeles apagado; requiere activación explícita." }
-                else { "Adaptadores nativos no disponibles en esta plataforma. No se ha verificado su ejecución." }.into(), native_available }
+            status: if native_available { "Subidas a uploadimg.vercel.app mediante Compartir explícito. Portapapeles apagado." }
+                else { "Adaptadores nativos no disponibles en esta plataforma. No se ha verificado su ejecución." }.into(), native_available, upload: None }
     }
     // Called while holding the model lock. Each batch carries the complete ID
     // snapshot, so the destination can reject obsolete effects after reordering.
@@ -172,7 +190,7 @@ impl Model {
     pub fn snapshot(&mut self, now: u64) -> UiState {
         self.tick(now);
         UiState {
-            simulation: true,
+            simulation: false,
             native_available: self.native_available,
             platform: std::env::consts::OS,
             paused: self.core.paused(),
@@ -205,12 +223,20 @@ impl Model {
                 .map(|r| ResultSummary {
                     id: r.id.clone(),
                     url: r.url.clone(),
-                    fictitious: true,
-                    expires_in_seconds: remaining(r.created_at, now, 86_400_000),
+                    fictitious: false,
+                    expires_in_seconds: r.expires_at.saturating_sub(now).div_ceil(1000),
                 })
                 .collect(),
             selected_candidate_id: self.selected_candidate.clone(),
             selected_result_id: self.selected_result.clone(),
+            upload: self.upload.as_ref().map(|upload| UploadSummary {
+                id: upload.id.clone(),
+                status: if upload.recovery.is_some() {
+                    "recoverable"
+                } else {
+                    "uploading"
+                },
+            }),
         }
     }
     pub fn configure(&self, user_change: bool) -> Operation {
@@ -259,6 +285,23 @@ impl Model {
         action: &str,
         now: u64,
     ) -> Result<Vec<Operation>, String> {
+        if action == "share" {
+            self.require_native()?;
+            if let Some(upload) = &mut self.upload {
+                if upload.id != id {
+                    return Err("Hay una subida pendiente. Recupera su enlace antes de compartir otra imagen.".into());
+                }
+                let Some(ticket) = upload.recovery.take() else {
+                    return Err("Esta imagen ya se está subiendo.".into());
+                };
+                self.status =
+                    "Recuperando el mismo enlace; no se vuelve a enviar la imagen.".into();
+                return Ok(vec![Operation::Upload {
+                    id: id.into(),
+                    job: crate::upload::Job::Finalize(ticket),
+                }]);
+            }
+        }
         let action = match action {
             "preview" => CandidateAction::Preview,
             "share" => CandidateAction::Share,
@@ -270,6 +313,12 @@ impl Model {
         } else {
             String::new()
         };
+        let admitted_at = self
+            .core
+            .pending()
+            .iter()
+            .find(|p| p.id == id)
+            .map_or(now, |p| p.created_at);
         let effect = self
             .core
             .act(id, action, &result_id, now)
@@ -283,14 +332,18 @@ impl Model {
             Effect::Ignored => {
                 self.status = "Imagen ignorada. No se ha realizado ninguna subida.".into();
             }
-            Effect::Shared(_bytes, result) => {
-                // Fake transport: never open a socket or publish the original bytes.
-                self.status =
-                    "Compartido solo en la simulación; enlace ficticio e inaccesible.".into();
-                self.selected_result = Some(result.id.clone());
-                operations.push(Operation::Notify {
-                    id: result.id,
-                    result: true,
+            Effect::Shared(image) => {
+                self.status = "Subiendo la imagen a uploadimg.vercel.app…".into();
+                self.upload = Some(ActiveUpload {
+                    id: id.into(),
+                    recovery: None,
+                    original_bytes: image.bytes().len(),
+                    digest: image.digest,
+                    admitted_at,
+                });
+                operations.push(Operation::Upload {
+                    id: id.into(),
+                    job: crate::upload::Job::Image(image),
                 });
             }
             _ => return Err("Estado de candidato inválido.".into()),
@@ -298,6 +351,57 @@ impl Model {
         self.tick(now);
         operations.push(self.sync_ids());
         Ok(operations)
+    }
+    pub fn finish_upload(
+        &mut self,
+        id: &str,
+        outcome: crate::upload::Outcome,
+        now: u64,
+    ) -> Vec<Operation> {
+        if self
+            .upload
+            .as_ref()
+            .is_none_or(|upload| upload.id != id || upload.recovery.is_some())
+        {
+            return vec![];
+        }
+        let mut operations = vec![];
+        match outcome {
+            crate::upload::Outcome::Ready(result) => {
+                self.upload = None;
+                if self
+                    .core
+                    .record_result(result.id.clone(), result.url, now, result.remaining_ms)
+                    .is_ok()
+                {
+                    self.status = "Imagen subida. Enlace público temporal listo.".into();
+                    self.selected_result = Some(result.id.clone());
+                    operations.push(Operation::Notify {
+                        id: result.id,
+                        result: true,
+                    });
+                } else {
+                    self.status = "El servidor devolvió un enlace no válido.".into();
+                }
+            }
+            crate::upload::Outcome::Recover(ticket) => {
+                if let Some(upload) = &mut self.upload {
+                    upload.recovery = Some(ticket);
+                    upload.original_bytes = 0;
+                }
+                self.status = "No se pudo confirmar el enlace. Pulsa Recuperar enlace para reintentar sin volver a enviar la imagen.".into();
+            }
+            crate::upload::Outcome::Failed(message) => {
+                if let Some(upload) = self.upload.take() {
+                    self.core
+                        .allow_failed_retry(upload.digest, upload.admitted_at);
+                }
+                self.status = message.into();
+            }
+        }
+        self.tick(now);
+        operations.push(self.sync_ids());
+        operations
     }
     pub fn result_action(
         &mut self,
@@ -314,7 +418,7 @@ impl Model {
         let effect = self
             .core
             .result_action(id, typed, now)
-            .map_err(|_| "Este enlace ficticio ya no está disponible.".to_string())?;
+            .map_err(|_| "Este enlace ya no está disponible.".to_string())?;
         match effect {
             Effect::ShowResult(result) => {
                 self.selected_result = Some(result.id);
@@ -325,8 +429,12 @@ impl Model {
                     return Err("Enlace rechazado.".into());
                 }
                 self.require_native()?;
-                self.status = if action == "copy" { "Copia explícita del enlace ficticio solicitada." }
-                    else { "Apertura explícita del enlace ficticio solicitada; no contiene una imagen pública." }.into();
+                self.status = if action == "copy" {
+                    "Copia explícita del enlace solicitada."
+                } else {
+                    "Apertura explícita del enlace público solicitada."
+                }
+                .into();
                 Ok(vec![Operation::Result {
                     id: id.into(),
                     action: if action == "copy" { 5 } else { 6 },
@@ -339,6 +447,24 @@ impl Model {
         self.tick(now);
         match event {
             Event::Image(event) => {
+                let uploading_bytes = self
+                    .upload
+                    .as_ref()
+                    .map_or(0, |upload| upload.original_bytes);
+                if self.core.pending().len() + usize::from(uploading_bytes > 0) >= 3
+                    || self
+                        .core
+                        .pending()
+                        .iter()
+                        .map(|p| p.image.bytes().len())
+                        .sum::<usize>()
+                        + uploading_bytes
+                        + event.original.len()
+                        > 30_000_000
+                {
+                    self.status = "Límite de imágenes pendientes o en envío alcanzado.".into();
+                    return vec![];
+                }
                 if !self.native_available
                     || event.generation != self.generation
                     || event.lifecycle != self.lifecycle

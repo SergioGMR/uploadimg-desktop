@@ -20,6 +20,7 @@ fn main() {
             .arg(native.join("Images.swift"))
             .arg(native.join("SyntheticImage.swift"))
             .arg(native.join("Bridge.swift"))
+            .arg(native.join("Upload.swift"))
             .arg("-o")
             .arg(output.join("libUploadimgNative.dylib"))
             .args([
@@ -31,7 +32,12 @@ fn main() {
             .status()
             .expect("installed Xcode Swift compiler");
         assert!(status.success(), "native macOS bridge compile failed");
-        for file in ["Images.swift", "SyntheticImage.swift", "Bridge.swift"] {
+        for file in [
+            "Images.swift",
+            "SyntheticImage.swift",
+            "Bridge.swift",
+            "Upload.swift",
+        ] {
             println!("cargo:rerun-if-changed={}", native.join(file).display());
         }
         println!("cargo:rustc-link-search=native={}", output.display());

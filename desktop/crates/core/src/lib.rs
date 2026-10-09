@@ -56,11 +56,12 @@ pub struct ResultItem {
     pub id: String,
     pub url: String,
     pub created_at: u64,
+    pub expires_at: u64,
 }
 #[derive(Debug)]
 pub enum Effect {
     Preview(String),
-    Shared(Image, ResultItem),
+    Shared(Image),
     ShowResult(ResultItem),
     Copy(String),
     Open(String),
@@ -85,6 +86,7 @@ pub struct Core {
     pending: Vec<Candidate>,
     results: Vec<ResultItem>,
     fingerprints: std::collections::VecDeque<([u8; 32], u64)>,
+    failed_retry: Option<([u8; 32], u64)>,
     last_tick: u64,
 }
 impl Core {
@@ -120,10 +122,23 @@ impl Core {
         let now = self.observe(now);
         self.pending
             .retain(|p| now.saturating_sub(p.created_at) < 600_000);
-        self.results
-            .retain(|p| now.saturating_sub(p.created_at) < 86_400_000);
+        self.results.retain(|p| now < p.expires_at);
         self.fingerprints
             .retain(|p| now.saturating_sub(p.1) < 30_000);
+        if self
+            .failed_retry
+            .is_some_and(|p| now.saturating_sub(p.1) >= 30_000)
+        {
+            self.failed_retry = None;
+        }
+    }
+    // A concrete terminal failure allows one explicit paste of that admission,
+    // without releasing suppression for automatic events or newer admissions.
+    pub fn allow_failed_retry(&mut self, digest: [u8; 32], admitted_at: u64) {
+        let fingerprint = (digest, admitted_at);
+        if self.fingerprints.contains(&fingerprint) {
+            self.failed_retry = Some(fingerprint);
+        }
     }
     pub fn admit(
         &mut self,
@@ -153,7 +168,16 @@ impl Core {
         if source == Source::Clipboard && !self.clipboard_enabled && !explicit_paste {
             return Err(Error::Disabled);
         }
-        if self.fingerprints.iter().any(|f| f.0 == image.digest) {
+        let duplicate = self
+            .fingerprints
+            .iter()
+            .find(|f| f.0 == image.digest)
+            .copied();
+        let retry = explicit_paste
+            && duplicate.is_some()
+            && duplicate == self.failed_retry
+            && !self.pending.iter().any(|p| p.image.digest == image.digest);
+        if duplicate.is_some() && !retry {
             return Err(Error::Duplicate);
         }
         if self.pending.len() == 3
@@ -166,6 +190,10 @@ impl Core {
                 > 30_000_000
         {
             return Err(Error::Capacity);
+        }
+        if retry {
+            self.fingerprints.retain(|f| Some(*f) != duplicate);
+            self.failed_retry = None;
         }
         self.fingerprints.push_back((image.digest, self.last_tick));
         if self.fingerprints.len() > 128 {
@@ -204,18 +232,37 @@ impl Core {
                 }
                 // Removing the candidate is the serialized, atomic consent boundary.
                 let candidate = self.pending.remove(index);
-                let result = ResultItem {
-                    id: result_id.into(),
-                    url: format!("https://example.invalid/i/{result_id}"),
-                    created_at: self.last_tick,
-                };
-                self.results.push(result.clone());
-                if self.results.len() > 20 {
-                    self.results.remove(0);
-                }
-                Ok(Effect::Shared(candidate.image, result))
+                Ok(Effect::Shared(candidate.image))
             }
         }
+    }
+    // Called only after validating the production finalize projection. Consent
+    // removes a candidate but never creates a result by itself.
+    pub fn record_result(
+        &mut self,
+        id: String,
+        url: String,
+        now: u64,
+        remaining_ms: u64,
+    ) -> Result<(), Error> {
+        self.expire(now);
+        if !Self::valid_result(&id, &url)
+            || remaining_ms == 0
+            || remaining_ms > 86_400_000
+            || self.results.iter().any(|r| r.id == id)
+        {
+            return Err(Error::InvalidId);
+        }
+        self.results.push(ResultItem {
+            id,
+            url,
+            created_at: self.last_tick,
+            expires_at: self.last_tick.saturating_add(remaining_ms),
+        });
+        if self.results.len() > 20 {
+            self.results.remove(0);
+        }
+        Ok(())
     }
     pub fn result_action(
         &mut self,
@@ -239,7 +286,7 @@ impl Core {
         }
     }
     pub fn valid_result(id: &str, url: &str) -> bool {
-        hex_id(id, 48) && url == format!("https://example.invalid/i/{id}")
+        hex_id(id, 48) && url == format!("https://uploadimg.vercel.app/i/{id}")
     }
 }
 fn hex_id(id: &str, length: usize) -> bool {

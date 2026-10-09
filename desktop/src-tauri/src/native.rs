@@ -11,6 +11,12 @@ pub fn drain() -> Vec<Event> {
 pub fn available() -> bool {
     cfg!(target_os = "macos")
 }
+pub struct HttpTransport;
+impl crate::upload::Transport for HttpTransport {
+    fn send(&mut self, request: crate::upload::Request) -> Result<crate::upload::Response, ()> {
+        http_request(request)
+    }
+}
 
 #[cfg(target_os = "macos")]
 mod macos {
@@ -46,6 +52,14 @@ mod macos {
         fn uig_sync_ids(ids: *const c_char, revision: u64);
         fn uig_result_operation(id: *const c_char, action: i32);
         fn uig_monotonic_millis() -> u64;
+        fn uig_http_request(
+            metadata: *const u8,
+            metadata_len: usize,
+            body: *const u8,
+            body_len: usize,
+            callback: unsafe extern "C" fn(i32, *const u8, usize, *mut std::ffi::c_void),
+            context: *mut std::ffi::c_void,
+        );
     }
 
     // The callback is a process-lifetime function pointer, without a heap context.
@@ -173,6 +187,48 @@ mod macos {
     pub fn monotonic_millis() -> u64 {
         unsafe { uig_monotonic_millis() }
     }
+    pub fn http_request(request: crate::upload::Request) -> Result<crate::upload::Response, ()> {
+        unsafe extern "C" fn receive_http(
+            status: i32,
+            bytes: *const u8,
+            len: usize,
+            context: *mut std::ffi::c_void,
+        ) {
+            if context.is_null()
+                || !(100..=599).contains(&status)
+                || len > 65_536
+                || (len > 0 && bytes.is_null())
+            {
+                return;
+            }
+            let output = &mut *(context as *mut Option<crate::upload::Response>);
+            let body = if len == 0 {
+                vec![]
+            } else {
+                std::slice::from_raw_parts(bytes, len).to_vec()
+            };
+            *output = Some(crate::upload::Response {
+                status: status as u16,
+                body,
+            });
+        }
+        let headers: std::collections::BTreeMap<_, _> = request.headers.iter().cloned().collect();
+        let metadata = serde_json::to_vec(&serde_json::json!({"method":request.method,"url":request.url,"headers":headers,"timeoutMs":request.timeout_ms})).map_err(|_| ())?;
+        let mut response = None;
+        // The native function waits on this worker and calls back synchronously;
+        // the stack context and borrowed buffers stay valid until it returns.
+        unsafe {
+            uig_http_request(
+                metadata.as_ptr(),
+                metadata.len(),
+                request.body.as_ptr(),
+                request.body.len(),
+                receive_http,
+                &mut response as *mut Option<crate::upload::Response> as *mut std::ffi::c_void,
+            );
+        }
+        response.ok_or(())
+    }
 
     #[cfg(test)]
     mod tests {
@@ -238,6 +294,9 @@ pub use macos::*;
 
 #[cfg(not(target_os = "macos"))]
 mod unavailable {
+    pub fn http_request(_: crate::upload::Request) -> Result<crate::upload::Response, ()> {
+        Err(())
+    }
     pub fn start() {}
     pub fn configure(_: bool, _: bool, _: u64, _: bool, _: u64) {}
     pub fn generate() {}

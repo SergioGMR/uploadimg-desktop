@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { deflateSync } from 'node:zlib';
 import { createBridge, commandArguments, previewSource } from '../bridge.mjs';
 
-const state = (status) => ({ simulation: true, status });
+const state = (status) => ({ simulation: false, status });
 const deferred = () => {
   let resolve, reject;
   const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
@@ -38,13 +38,15 @@ function largePng(byteLength) {
 }
 
 test('only the documented commands and narrow arguments reach native code', () => {
-  assert.deepEqual(commandArguments('candidate_action', { id: 'candidate-1', action: 'share' }), { id: 'candidate-1', action: 'share' });
+  assert.deepEqual(commandArguments('candidate_action', { id: 'a'.repeat(32), action: 'share' }), { id: 'a'.repeat(32), action: 'share' });
   assert.deepEqual(commandArguments('set_clipboard_enabled', { enabled: false }), { enabled: false });
   for (const [command, args] of [
     ['read_path', {}], ['paste_image', { path: '/private/image.png' }],
-    ['result_action', { id: 'result-1', action: 'open', url: 'https://evil.invalid' }],
+    ['result_action', { id: 'b'.repeat(48), action: 'open', url: 'https://evil.invalid' }],
     ['candidate_action', { id: '', action: 'share' }],
-    ['candidate_action', { id: 'candidate-1', action: 'copy' }],
+    ['candidate_action', { id: 'not-opaque', action: 'share' }],
+    ['result_action', { id: 'a'.repeat(32), action: 'copy' }],
+    ['candidate_action', { id: 'a'.repeat(32), action: 'copy' }],
     ['set_clipboard_enabled', { enabled: 'true' }],
   ]) assert.throws(() => commandArguments(command, args));
 });
@@ -54,7 +56,7 @@ test('ordinary browser cannot fabricate native state or action success', async (
   const bridge = createBridge({ onState: value => seen.push(value) });
   assert.equal(bridge.available, false);
   assert.equal(await bridge.poll(), false);
-  await assert.rejects(bridge.act('generate_synthetic'), /Uploadimg Desktop/);
+  await assert.rejects(bridge.act('generate_synthetic'), /UploadIMG/);
   assert.deepEqual(seen, []);
 });
 

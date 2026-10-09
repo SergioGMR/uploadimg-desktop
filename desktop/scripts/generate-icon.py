@@ -1,19 +1,28 @@
+"""Generate the editable macOS app icon using the installed Apple toolchain."""
 from pathlib import Path
-import struct
-import zlib
+import shutil
+import subprocess
 
 root = Path(__file__).resolve().parent.parent
-size = 32
-rows = bytearray()
-for y in range(size):
-    rows.append(0)
-    for x in range(size):
-        arrow = (12 <= x <= 19 and 11 <= y <= 23) or (5 <= y <= 13 and abs(x - 15.5) <= y - 4)
-        rows.extend((245, 247, 250, 255) if arrow else (30, 75, 140, 255))
-
-def chunk(kind, data):
-    return struct.pack('>I', len(data)) + kind + data + struct.pack('>I', zlib.crc32(kind + data))
-
-png = b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', size, size, 8, 6, 0, 0, 0))
-png += chunk(b'IDAT', zlib.compress(bytes(rows))) + chunk(b'IEND', b'')
-(root / 'src-tauri/icons/icon.png').write_bytes(png)
+icons = root / 'src-tauri/icons'
+work = root / '.build/app-icon'
+iconset = work / 'icon.iconset'
+cache = work / 'ModuleCache'
+icons.mkdir(parents=True, exist_ok=True)
+cache.mkdir(parents=True, exist_ok=True)
+subprocess.run([
+    '/usr/bin/xcrun', 'swift', '-module-cache-path', str(cache),
+    str(root / 'scripts/generate-app-icon.swift'), str(iconset),
+], check=True)
+for source, destination in [
+    ('icon_512x512@2x.png', 'icon.png'),
+    ('icon_32x32.png', '32x32.png'),
+    ('icon_128x128.png', '128x128.png'),
+    ('icon_128x128@2x.png', '128x128@2x.png'),
+]:
+    shutil.copyfile(iconset / source, icons / destination)
+subprocess.run([
+    '/usr/bin/iconutil', '--convert', 'icns', str(iconset),
+    '--output', str(icons / 'icon.icns'),
+], check=True)
+print('PASS: generated UploadIMG PNG resources and complete macOS ICNS')

@@ -14,7 +14,8 @@ export function commandArguments(command, args = {}) {
   if (expected.length === 1 && typeof args[expected[0]] !== 'boolean') throw new Error('Se requiere un valor booleano.');
   if (expected.includes('id')) {
     const actions = command === 'candidate_action' ? ['preview', 'share', 'ignore'] : ['copy', 'open'];
-    if (typeof args.id !== 'string' || !args.id.trim() || args.id.length > 200 || !actions.includes(args.action)) {
+    const opaqueId = command === 'candidate_action' ? /^[0-9a-f]{32}$/ : /^[0-9a-f]{48}$/;
+    if (typeof args.id !== 'string' || !opaqueId.test(args.id) || !actions.includes(args.action)) {
       throw new Error('Acción no válida.');
     }
   }
@@ -53,7 +54,7 @@ export function createBridge({ invoke, onState = () => {}, onError = () => {}, o
     },
     async act(command, args = {}) {
       const payload = commandArguments(command, args);
-      if (!available) throw new Error('Abre Uploadimg Desktop para utilizar estas acciones.');
+      if (!available) throw new Error('Abre UploadIMG para utilizar estas acciones.');
       const startedAt = ++epoch;
       if (++pending === 1) onBusy(true);
       try {

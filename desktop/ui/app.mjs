@@ -5,7 +5,8 @@ const byId = id => document.getElementById(id);
 const text = (element, value) => { if (element.textContent !== value) element.textContent = value; };
 const elements = Object.fromEntries(['clipboard', 'clipboard-detail', 'pause', 'notifications', 'notification-detail',
   'status', 'busy', 'error', 'paste', 'generate', 'pending-count', 'pending-empty', 'pending-list', 'capture-hint',
-  'selected-preview', 'selected-image', 'results-count', 'results-empty', 'results-list', 'browser-notice'].map(id => [id, byId(id)]));
+  'selected-preview', 'selected-image', 'results-count', 'results-empty', 'results-list', 'browser-notice',
+  'upload-panel', 'upload-status', 'recover-upload'].map(id => [id, byId(id)]));
 const candidateNodes = new Map(), resultNodes = new Map();
 let confirmedState = null, busy = false;
 
@@ -21,6 +22,12 @@ const bridge = createBridge({
 });
 
 async function act(command, args) {
+  if (command === 'candidate_action' && args.action === 'share') {
+    if (busy || !confirmedState?.nativeAvailable) return;
+    const upload = confirmedState.upload;
+    if (upload ? upload.id !== args.id || upload.status !== 'recoverable'
+      : !confirmedState.pending.some(item => item.id === args.id)) return;
+  }
   try { await bridge.act(command, args); }
   catch { /* The bridge presents the native error; confirmed state stays unchanged. */ }
 }
@@ -28,6 +35,10 @@ async function act(command, args) {
 function updateControls() {
   const unavailable = busy || !confirmedState || !bridge.available;
   for (const button of document.querySelectorAll('[data-command]')) button.disabled = unavailable;
+  for (const node of candidateNodes.values()) {
+    node.share.disabled = unavailable || !confirmedState?.nativeAvailable || confirmedState?.upload !== null;
+  }
+  elements['recover-upload'].disabled = unavailable || !confirmedState?.nativeAvailable || confirmedState?.upload?.status !== 'recoverable';
   elements.generate.disabled = unavailable;
   elements.pause.disabled = unavailable;
   elements.clipboard.disabled = unavailable || !confirmedState?.clipboardAvailable || !confirmedState?.nativeAvailable;
@@ -65,14 +76,15 @@ function newCandidate(id) {
   const meta = element('p', 'card-meta');
   const expiry = element('p', 'detail');
   const actions = element('div', 'card-actions');
-  const share = actionButton('Compartir (simulado)', 'candidate_action', id, 'share', 'primary');
+  const share = actionButton('Compartir', 'candidate_action', id, 'share', 'primary');
+  share.setAttribute('aria-describedby', 'share-consent');
   const ignore = actionButton('Ignorar', 'candidate_action', id, 'ignore');
   actions.append(share, ignore);
   const preview = actionButton('Ver imagen', 'candidate_action', id, 'preview', 'preview-button');
   preview.setAttribute('aria-pressed', 'false');
   content.append(source, meta, expiry, actions, preview);
   root.append(thumbnail, content);
-  return { root, image, unavailable, source, meta, expiry, preview };
+  return { root, image, unavailable, source, meta, expiry, preview, share };
 }
 
 function newResult(id) {
@@ -136,7 +148,13 @@ function render() {
     state.notificationStatus === 'requesting' ? 'Solicitando…' : 'Solicitar permiso');
   text(elements['capture-hint'], state.platform === 'macos' && state.clipboardAvailable
     ? 'Activa la detección y usa Ctrl + Cmd + Shift + 4 para copiar una captura, o pega una imagen explícitamente.'
-    : 'Genera una imagen de prueba para revisar el flujo de subida simulada.');
+    : 'Genera una imagen de prueba para revisar su vista previa. Compartir la enviará al servicio.');
+  const upload = state.upload;
+  elements['upload-panel'].hidden = upload === null;
+  elements['recover-upload'].hidden = upload?.status !== 'recoverable';
+  text(elements['upload-status'], upload?.status === 'recoverable'
+    ? 'No se pudo confirmar la subida ni su enlace. Recupera el enlace sin volver a enviar la imagen.'
+    : 'Subida en curso. Esperando el enlace; podrás compartir otra imagen cuando termine.');
   text(elements['pending-count'], String(state.pending.length));
   text(elements['results-count'], String(state.results.length));
   elements['pending-empty'].hidden = state.pending.length > 0;
@@ -157,10 +175,15 @@ function render() {
   setImage(elements['selected-image'], preview);
   reconcile(state.results, resultNodes, elements['results-list'], newResult, (node, item) => {
     text(node.url, item.url);
-    text(node.expiry, `Enlace ficticio · Caduca en ${lifetime(item.expiresInSeconds)}`);
+    text(node.expiry, `Caduca en ${lifetime(item.expiresInSeconds)}`);
   });
   updateControls();
 }
+
+elements['recover-upload'].addEventListener('click', () => {
+  const upload = confirmedState?.upload;
+  if (upload?.status === 'recoverable') return act('candidate_action', { id: upload.id, action: 'share' });
+});
 
 elements.clipboard.addEventListener('change', () => act('set_clipboard_enabled', { enabled: elements.clipboard.checked }));
 elements.pause.addEventListener('click', () => act('set_paused', { paused: !confirmedState.paused }));
@@ -170,7 +193,7 @@ elements.generate.addEventListener('click', () => act('generate_synthetic'));
 
 if (!bridge.available) {
   elements['browser-notice'].hidden = false;
-  text(elements.status, 'Funciones nativas disponibles dentro de Uploadimg Desktop.');
+  text(elements.status, 'Funciones nativas disponibles dentro de UploadIMG.');
   text(elements['notification-detail'], 'Abre la aplicación para consultar su disponibilidad.');
 } else {
   void bridge.poll();

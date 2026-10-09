@@ -1,4 +1,5 @@
 import AppKit
+import UserNotifications
 import ImageIO
 import Darwin
 
@@ -166,6 +167,80 @@ test("wake/control tokens reject in-flight paste but permit new explicit paste w
     try expect(bridge.acceptsImage(generation: callbackMeta[1], lifecycle: callbackMeta[2]), "new explicit paste OFF would be rejected")
     board.accesses = []; board.count += 1; bridge.poll()
     try expect(board.accesses.isEmpty, "OFF failed after wake")
+}
+
+final class UploadFixtureProtocol: URLProtocol {
+    static var mode = "ok"
+    static var requestCount = 0
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func startLoading() {
+        Self.requestCount += 1
+        if Self.mode == "timeout" { return }
+        if Self.mode == "redirect" {
+            let next = URLRequest(url: URL(string: "https://evil.invalid/private")!)
+            let response = HTTPURLResponse(url: request.url!, statusCode: 307, httpVersion: nil, headerFields: ["Location": next.url!.absoluteString])!
+            client?.urlProtocol(self, wasRedirectedTo: next, redirectResponse: response)
+            return
+        }
+        let response = HTTPURLResponse(url: request.url!, statusCode: 201, httpVersion: nil,
+            headerFields: ["Content-Type": "application/json"])!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        let body = Self.mode == "oversize" ? Data(repeating: 65, count: 65_537) : Data("{\"ready\":true}".utf8)
+        client?.urlProtocol(self, didLoad: body)
+        client?.urlProtocolDidFinishLoading(self)
+    }
+    override func stopLoading() {}
+}
+func fixtureUpload(_ mode: String, timeout: Double = 1000) -> (Int32, Data) {
+    UploadFixtureProtocol.mode = mode; UploadFixtureProtocol.requestCount = 0
+    let configuration = URLSessionConfiguration.ephemeral
+    configuration.protocolClasses = [UploadFixtureProtocol.self]
+    var request = URLRequest(url: URL(string: "https://uploadimg.vercel.app/api/uploads/finalize")!)
+    request.httpMethod = "POST"; request.httpBody = Data("{}".utf8)
+    return performUpload(request, timeout: timeout, configuration: configuration)
+}
+test("native upload transport returns bounded fixture response and rejects redirects, overflow and timeout") {
+    let (status, body) = fixtureUpload("ok")
+    try expect(status == 201 && body == Data("{\"ready\":true}".utf8), "fixture response lost")
+    let redirect = fixtureUpload("redirect")
+    try expect(redirect.0 == 0 && redirect.1.isEmpty && UploadFixtureProtocol.requestCount == 1, "redirect followed or accepted")
+    let overflow = fixtureUpload("oversize")
+    try expect(overflow.0 == 0 && overflow.1.isEmpty, "unbounded body accepted")
+    let timeout = fixtureUpload("timeout", timeout: 10)
+    try expect(timeout.0 == 0 && timeout.1.isEmpty, "timeout accepted")
+}
+test("real native destination guard admits exact production PUT and rejects near misses") {
+    let address = "https://vercel.com/api/blob/?pathname=uploadimg%2Fv1%2Fstaging%2Ftest"
+    try expect(uploadDestinationAllowed(address, method: "PUT") != nil, "exact production PUT rejected before transport")
+    for invalid in ["http://vercel.com/api/blob/?pathname=x", "https://vercel.com/api/blob?pathname=x",
+        "https://vercel.com/api/blob//?pathname=x", "https://vercel.com/%61pi/blob/?pathname=x",
+        "https://vercel.com/api/blob/", "https://vercel.com.evil.invalid/api/blob/?pathname=x",
+        "https://user@vercel.com/api/blob/?pathname=x", "https://vercel.com:443/api/blob/?pathname=x",
+        "https://vercel.com/api/blob/?pathname=x#fragment"] {
+        try expect(uploadDestinationAllowed(invalid, method: "PUT") == nil, "near miss accepted: \(invalid)")
+    }
+    try expect(uploadDestinationAllowed(address, method: "POST") == nil, "wrong PUT method accepted")
+    try expect(uploadDestinationAllowed("https://uploadimg.vercel.app/api/uploads/finalize", method: "POST") != nil, "finalize rejected")
+    try expect(uploadDestinationAllowed("https://uploadimg.vercel.app/api/uploads/%66inalize", method: "POST") == nil, "encoded finalize alias accepted")
+}
+test("production notifications describe explicit public upload and never fictitious success") {
+    var request: UNNotificationRequest?
+    let bridge = NativeBridge(boardFactory: { FakeBoard() }, sendNotification: { request = $0 }, removeNotifications: { _ in })
+    bridge.notificationsAllowed = true
+    let candidate = String(repeating: "a", count: 32)
+    bridge.sync(ids: ["candidate." + candidate], revision: 1)
+    bridge.notify(id: candidate, result: false, revision: 1)
+    try expect(request?.content.body.contains("enlace público temporal") == true, "consent copy lacks public upload")
+    let result = String(repeating: "b", count: 48)
+    bridge.sync(ids: ["result." + result], revision: 2)
+    bridge.notify(id: result, result: true, revision: 2)
+    try expect(request?.content.body == "https://uploadimg.vercel.app/i/" + result, "notification has wrong public origin")
+}
+test("live-service opt-in uses a valid generated two-pixel fixture without clipboard") {
+    let bytes = Data(base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGMw7rgLRAwQCgAqBgZhF+QOcgAAAABJRU5ErkJggg==")!
+    let fixture = try ImageDecoder.prepare(bytes)
+    try expect(fixture.image.width == 2 && fixture.image.height == 2 && fixture.image.bytes == bytes, "synthetic upload fixture is invalid or changed")
 }
 print("RESULT \(passed) passed, \(failed) failed")
 exit(failed == 0 ? 0 : 1)

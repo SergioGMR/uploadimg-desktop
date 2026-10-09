@@ -4,17 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark">
-    <title>Uploadimg Desktop</title>
+    <title>UploadIMG</title>
     <link rel="stylesheet" href="styles.css">
     <script type="module" src="app.mjs"></script>
   </head>
   <body>
     <header class="app-header">
-      <div class="identity"><span class="app-icon" aria-hidden="true">↑</span><h1>Uploadimg</h1></div>
-      <span class="simulation-badge">Prueba local · Subida simulada</span>
+      <div class="identity"><span class="app-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m3 16 5-5 5 5 3-3 5 5M15 7h.01"/></svg></span><h1>UploadIMG</h1></div>
+      <span class="service-badge">Enlaces temporales · 24 horas</span>
     </header>
     <main>
-      <div id="browser-notice" class="notice" hidden>Abre Uploadimg Desktop para utilizar las imágenes copiadas y las acciones nativas.</div>
+      <div id="browser-notice" class="notice" hidden>Abre UploadIMG para utilizar las imágenes copiadas y las acciones nativas.</div>
       <section class="settings" aria-labelledby="sources-heading">
         <div class="section-heading"><h2 id="sources-heading">Fuentes de imágenes</h2><button id="pause" class="quiet" disabled>Pausar</button></div>
         <label class="source-option"><input id="clipboard" type="checkbox" disabled><span><strong>Detectar imágenes copiadas</strong><span id="clipboard-detail" class="detail">Desactivado por defecto. Actívalo para detectar imágenes del portapapeles.</span></span></label>
@@ -23,18 +23,20 @@
       </section>
       <div class="status-line"><span id="status" role="status">Conectando con la aplicación…</span><span id="busy" hidden>Procesando…</span></div>
       <p id="error" class="error" role="alert" hidden></p>
+      <section id="upload-panel" class="upload-panel" aria-label="Subida actual" hidden><p id="upload-status" role="status"></p><button id="recover-upload" class="primary" disabled hidden>Recuperar enlace</button></section>
       <section aria-labelledby="pending-heading">
         <div class="section-heading"><h2 id="pending-heading">Imágenes pendientes <span id="pending-count" class="count">0</span></h2><div class="button-group"><button id="paste" class="quiet" disabled>Pegar imagen</button><button id="generate" class="quiet" disabled>Generar imagen de prueba</button></div></div>
+        <p id="share-consent" class="detail share-consent">Compartir envía la imagen a uploadimg.vercel.app y crea un enlace público que caduca en 24 horas.</p>
         <div id="pending-empty" class="empty"><strong>Tus imágenes aparecerán aquí</strong><p id="capture-hint">Activa la detección de imágenes copiadas o genera una imagen de prueba.</p><p>Revisa cada imagen y elige Compartir o Ignorar.</p></div>
         <div id="pending-list" class="candidate-list"></div>
         <figure id="selected-preview" class="selected-preview" hidden><figcaption>Vista previa de la imagen seleccionada</figcaption><img id="selected-image" alt="Vista previa de la imagen seleccionada"></figure>
       </section>
       <section class="results-section" aria-labelledby="results-heading">
-        <div class="section-heading"><h2 id="results-heading">Enlaces simulados <span id="results-count" class="count">0</span></h2><span class="detail">Máximo 20</span></div>
-        <p id="results-empty" class="empty result-empty">Cuando compartas una imagen, aparecerá un enlace ficticio aquí.</p>
+        <div class="section-heading"><h2 id="results-heading">Enlaces compartidos <span id="results-count" class="count">0</span></h2><span class="detail">Máximo 20</span></div>
+        <p id="results-empty" class="empty result-empty">Cuando compartas una imagen, aparecerá su enlace temporal aquí.</p>
         <ul id="results-list" class="result-list"></ul>
       </section>
     </main>
-    <footer>No se suben imágenes a un servidor. Los enlaces de esta prueba son ficticios.</footer>
+    <footer>Las imágenes se envían solo al pulsar Compartir. La detección y la vista previa no autorizan una subida.</footer>
   </body>
 </html>
