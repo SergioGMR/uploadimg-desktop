@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 240" role="img" aria-labelledby="title description">
+  <title id="title">Uploadimg Desktop</title>
+  <desc id="description">Una imagen. Tú decides el siguiente paso. Beta local para macOS.</desc>
+  <rect width="960" height="240" rx="24" fill="#0b1220"/>
+  <rect x="54" y="64" width="112" height="112" rx="28" fill="#2563eb"/>
+  <g transform="translate(78 88) scale(2.67)" fill="none" stroke="white" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z"/>
+    <path d="m3 16 5-5 5 5 3-3 5 5"/>
+    <path d="M15 7h.01"/>
+  </g>
+  <g font-family="system-ui, -apple-system, sans-serif">
+    <text x="202" y="105" fill="#f8fafc" font-size="44" font-weight="700">Uploadimg Desktop</text>
+    <text x="202" y="148" fill="#cbd5e1" font-size="23">Una imagen. Tú decides el siguiente paso.</text>
+    <text x="202" y="183" fill="#93c5fd" font-size="17">BETA LOCAL · macOS · APPLE SILICON</text>
+  </g>
+</svg>

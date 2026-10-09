@@ -1,0 +1,2462 @@
+{
+  "openapi": "3.1.0",
+  "jsonSchemaDialect": "https://spec.openapis.org/oas/3.1/dialect/base",
+  "info": {
+    "title": "uploadimg public API",
+    "version": "1.0.0-proposal",
+    "description": "DOCUMENTED PROPOSAL ONLY; not implemented/deployed. Anonymous image sharing; separate from existing local /api/images. See uploadimg-v1.md for lifecycle and security gates."
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "Relative contract surface only; no production origin selected. Native client uses explicitly configured HTTPS API and web origins."
+    }
+  ],
+  "security": [],
+  "tags": [
+    {
+      "name": "Uploads",
+      "description": "Explicitly consented upload and anonymous receipt recovery."
+    },
+    {
+      "name": "Images",
+      "description": "Expiring optimized image access and reporting."
+    }
+  ],
+  "paths": {
+    "/api/v1/images": {
+      "post": {
+        "operationId": "uploadImage",
+        "tags": [
+          "Uploads"
+        ],
+        "summary": "Publish a consented image or reconcile an idempotent replay",
+        "description": "Bounded admission/provisional processing claim may precede receiving body. Processing same-key requests may return 409 without body comparison. Compute final fingerprint from actual bounded bytes+MIME before final comparison/commit. 48-hour ledger starts at first reservation; after purge historical key recognition is not guaranteed. Client POST retries require user action, same retained immutable bytes/key, and at most 10 minutes. Ready replays recheck availability. Desktop durably saves receipt capability and minimal accepted-operation metadata before first POST, without image bytes; persistence failure prevents transfer. Optional receiptState failed proves durable terminal failure only for422 invalid_image,507 storage_full,503 storage_unavailable,500 internal_error. 400/411/413/415/429 are never stored terminal. No same-key POST after marked failure. Unknown outcomes query GET; only GET404 upload_unknown with original retained bytes and <10min permits explicit UserRetry, never automatic POST. Invalid input, not_found and upload_expired do not allow identical old-key retry.",
+        "security": [
+          {
+            "ReceiptCapability": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "256-bit random lowerhex64 anonymous secret receipt capability; never log or place in a URL. Invalid/missing POST key: 400. Invalid/missing result key: 404.",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          {
+            "name": "Content-Length",
+            "in": "header",
+            "required": true,
+            "description": "Exact encoded request bytes; absence 411, malformed/mismatch 400, above cap 413. A stream must remain bounded regardless of declared value.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000000
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Raw binary only; static image, 10,000,000 encoded bytes, 16,000,000 decoded pixels, 8,192 pixels per edge. Declared/decoded MIME must match. No filename or source metadata.",
+          "content": {
+            "image/jpeg": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/png": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            },
+            "image/webp": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Newly ready image, durable publication complete and accessible. Not a queued response.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              },
+              "Content-Location": {
+                "description": "Required relative optimized image resource; ID must match response id.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^/api/v1/images/[0-9a-f]{48}$"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadyImage"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Matching ready replay, currently accessible. Same immutable result; never extends expiry.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              },
+              "Content-Location": {
+                "description": "Required relative optimized image resource; ID must match response id.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^/api/v1/images/[0-9a-f]{48}$"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadyImage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request, invalid key, or invalid/mismatched length.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "malformed_request",
+                            "invalid_idempotency_key",
+                            "invalid_length"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "not": {
+                        "required": [
+                          "receiptState"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Previously ready image is blocked or deleted before expiry; do not replay an old ready result.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "not_found"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "not": {
+                        "required": [
+                          "receiptState"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Different fully computed fingerprint: idempotency_conflict. Still processing: upload_in_progress, potentially before body read, with Retry-After required for that code only.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              },
+              "Retry-After": {
+                "description": "Required only for upload_in_progress; not required for idempotency_conflict.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "idempotency_conflict",
+                            "upload_in_progress"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "not": {
+                        "required": [
+                          "receiptState"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Successful image expired while its 48-hour receipt record remains; never resurrect it.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "upload_expired"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "not": {
+                        "required": [
+                          "receiptState"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "411": {
+            "description": "Content-Length missing.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "length_required"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "not": {
+                        "required": [
+                          "receiptState"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Encoded body exceeds cap; reject without unbounded read.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "too_large"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "not": {
+                        "required": [
+                          "receiptState"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Unsupported declared media type.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "unsupported_media_type"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "not": {
+                        "required": [
+                          "receiptState"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "receiptState failed means durable terminal commit; without marker this does not prove a stored terminal failure. An unmarked server/lookup failure leaves outcome unknown.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "error": {
+                              "type": "string",
+                              "enum": [
+                                "invalid_image"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "not": {
+                            "required": [
+                              "receiptState"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/RecordedUploadFailure"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "error": {
+                              "type": "string",
+                              "enum": [
+                                "invalid_image"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or bounded admission capacity reached; no unbounded queue.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              },
+              "Retry-After": {
+                "description": "Required positive integer seconds. Honor within bounded client window.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "rate_limited",
+                            "busy"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "not": {
+                        "required": [
+                          "receiptState"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "receiptState failed means durable terminal commit; without marker this does not prove a stored terminal failure. An unmarked server/lookup failure leaves outcome unknown.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "error": {
+                              "type": "string",
+                              "enum": [
+                                "internal_error"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "not": {
+                            "required": [
+                              "receiptState"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/RecordedUploadFailure"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "error": {
+                              "type": "string",
+                              "enum": [
+                                "internal_error"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "receiptState failed means durable terminal commit; without marker this does not prove a stored terminal failure. An unmarked server/lookup failure leaves outcome unknown.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              },
+              "Retry-After": {
+                "description": "Required positive integer seconds. Honor within bounded client window.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "error": {
+                              "type": "string",
+                              "enum": [
+                                "unavailable",
+                                "storage_unavailable"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "not": {
+                            "required": [
+                              "receiptState"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/RecordedUploadFailure"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "error": {
+                              "type": "string",
+                              "enum": [
+                                "storage_unavailable"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "unmarked": {
+                    "summary": "Unknown outcome or lookup/admission error; consult receipt, not terminal proof.",
+                    "value": {
+                      "error": "storage_unavailable",
+                      "message": "Storage is unavailable."
+                    }
+                  },
+                  "recorded": {
+                    "summary": "Durably recorded terminal failure; never rePOST this key.",
+                    "value": {
+                      "error": "storage_unavailable",
+                      "message": "Storage is unavailable.",
+                      "receiptState": "failed"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "507": {
+            "description": "receiptState failed means durable terminal commit; without marker this does not prove a stored terminal failure. An unmarked server/lookup failure leaves outcome unknown.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "error": {
+                              "type": "string",
+                              "enum": [
+                                "storage_full"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "not": {
+                            "required": [
+                              "receiptState"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/RecordedUploadFailure"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "error": {
+                              "type": "string",
+                              "enum": [
+                                "storage_full"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/uploads/result": {
+      "get": {
+        "operationId": "getUploadResult",
+        "tags": [
+          "Uploads"
+        ],
+        "summary": "Recover the outcome without transferring image bytes",
+        "description": "Secret header capability; rate-limited. Invalid/unknown/purged receipt404. Expired ready410 while retained; blocked/deleted ready404. Revalidate availability, never replay stale success. Recorded terminal errors use their original documented status/code. Timeout/500 may still be unknown; do not automatically resend POST. GET422/507 requires receiptState failed; GET500/503 may be unmarked lookup error (Unknown) or marked terminal failure. GET202 remains Unknown. GET404 upload_unknown permits explicit same-key UserRetry only with original retained bytes and <10min; restart/no bytes requires reselection, consent and new key. not_found/410 and terminal marker forbid old-key retry.",
+        "security": [
+          {
+            "ReceiptCapability": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "256-bit random lowerhex64 anonymous secret receipt capability; never log or place in a URL. Invalid/missing POST key: 400. Invalid/missing result key: 404.",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ready result; publication committed durably and currently accessible. Replay preserves exact result and expiry. Revalidate expiry/block/deletion before responding.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              },
+              "Content-Location": {
+                "description": "Required relative optimized image resource; ID must match response id.",
+                "schema": {
+                  "type": "string",
+                  "pattern": "^/api/v1/images/[0-9a-f]{48}$"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadyImage"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Operation still processing. No image transfer; bounded receipt polling allowed.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              },
+              "Retry-After": {
+                "description": "Required positive integer seconds. Honor within bounded client window.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Processing"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown/invalid/missing capability or purged record: upload_unknown. A blocked/deleted formerly ready image: not_found. No information about other uploads.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "upload_unknown",
+                            "not_found"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "not": {
+                        "required": [
+                          "receiptState"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Ready image expired and receipt record is still retained.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "upload_expired"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "not": {
+                        "required": [
+                          "receiptState"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Recorded terminal failure; receiptState failed is REQUIRED after durable commit.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/RecordedUploadFailure"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_image"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or bounded admission capacity reached; no unbounded queue.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              },
+              "Retry-After": {
+                "description": "Required positive integer seconds. Honor within bounded client window.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "rate_limited",
+                            "busy"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "not": {
+                        "required": [
+                          "receiptState"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "receiptState failed means durable terminal commit; without marker this does not prove a stored terminal failure. An unmarked server/lookup failure leaves outcome unknown.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "error": {
+                              "type": "string",
+                              "enum": [
+                                "internal_error"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "not": {
+                            "required": [
+                              "receiptState"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/RecordedUploadFailure"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "error": {
+                              "type": "string",
+                              "enum": [
+                                "internal_error"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "receiptState failed means durable terminal commit; without marker this does not prove a stored terminal failure. An unmarked server/lookup failure leaves outcome unknown.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              },
+              "Retry-After": {
+                "description": "Required positive integer seconds. Honor within bounded client window.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/Error"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "error": {
+                              "type": "string",
+                              "enum": [
+                                "unavailable",
+                                "storage_unavailable"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "not": {
+                            "required": [
+                              "receiptState"
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/RecordedUploadFailure"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "error": {
+                              "type": "string",
+                              "enum": [
+                                "storage_unavailable"
+                              ]
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "examples": {
+                  "unmarked": {
+                    "summary": "Unknown outcome or lookup/admission error; consult receipt, not terminal proof.",
+                    "value": {
+                      "error": "storage_unavailable",
+                      "message": "Storage is unavailable."
+                    }
+                  },
+                  "recorded": {
+                    "summary": "Durably recorded terminal failure; never rePOST this key.",
+                    "value": {
+                      "error": "storage_unavailable",
+                      "message": "Storage is unavailable.",
+                      "receiptState": "failed"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "507": {
+            "description": "Recorded terminal failure; receiptState failed is REQUIRED after durable commit.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/RecordedUploadFailure"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "storage_full"
+                          ]
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/images/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{48}$"
+          }
+        },
+        {
+          "name": "download",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "type": "integer",
+            "const": 1
+          },
+          "description": "Request a generic safe attachment filename."
+        }
+      ],
+      "get": {
+        "operationId": "getImage",
+        "tags": [
+          "Images"
+        ],
+        "summary": "Read an accessible optimized image",
+        "description": "Possession of unguessable ID permits access until expiry unless blocked/deleted; not recipient-restricted. Expiry denial independent of object cleanup; no public object-store bypass.",
+        "responses": {
+          "200": {
+            "description": "Accessible optimized static WebP; access checked before metadata/bytes.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              },
+              "Content-Length": {
+                "description": "Optimized WebP representation length, also on HEAD.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 5000000
+                }
+              },
+              "Content-Disposition": {
+                "description": "If download=1: attachment; filename=\"image.webp\". Never use a client filename.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "description": "Required nosniff.",
+                "schema": {
+                  "type": "string",
+                  "const": "nosniff"
+                }
+              }
+            },
+            "content": {
+              "image/webp": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Uniform missing/expired/blocked/deleted resource. No reason oracle.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "not_found"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "not": {
+                        "required": [
+                          "receiptState"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or bounded admission capacity reached; no unbounded queue.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              },
+              "Retry-After": {
+                "description": "Required positive integer seconds. Honor within bounded client window.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "rate_limited",
+                            "busy"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "not": {
+                        "required": [
+                          "receiptState"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected image-read failure; no upload-receipt lookup is required.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "internal_error"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "not": {
+                        "required": [
+                          "receiptState"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Image service/storage unavailable; honor Retry-After for bounded read retry. No upload-receipt lookup is required.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              },
+              "Retry-After": {
+                "description": "Required positive integer seconds. Honor within bounded client window.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "unavailable",
+                            "storage_unavailable"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "not": {
+                        "required": [
+                          "receiptState"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "head": {
+        "operationId": "headImage",
+        "tags": [
+          "Images"
+        ],
+        "summary": "Check representation headers without bytes",
+        "description": "Same access checks and representation headers as GET, no body for success or error.",
+        "responses": {
+          "200": {
+            "description": "Accessible optimized static WebP; access checked before metadata/bytes. HEAD has no response body. Representation media type is image/webp; Content-Type is not modeled in response headers because OpenAPI ignores that field.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              },
+              "Content-Length": {
+                "description": "Optimized WebP representation length, also on HEAD.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 5000000
+                }
+              },
+              "Content-Disposition": {
+                "description": "If download=1: attachment; filename=\"image.webp\". Never use a client filename.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "X-Content-Type-Options": {
+                "description": "Required nosniff.",
+                "schema": {
+                  "type": "string",
+                  "const": "nosniff"
+                }
+              }
+            },
+            "x-representation-media-type": "image/webp"
+          },
+          "404": {
+            "description": "Uniform missing/expired/blocked/deleted resource. No reason oracle. HEAD has no response body.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or bounded admission capacity reached; no unbounded queue. HEAD has no response body.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              },
+              "Retry-After": {
+                "description": "Required positive integer seconds. Honor within bounded client window.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected image-read failure; no upload-receipt lookup is required. HEAD has no response body.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Image service/storage unavailable; honor Retry-After for bounded read retry. No upload-receipt lookup is required. HEAD has no response body.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              },
+              "Retry-After": {
+                "description": "Required positive integer seconds. Honor within bounded client window.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/images/{id}/report": {
+      "post": {
+        "operationId": "reportImage",
+        "tags": [
+          "Images"
+        ],
+        "summary": "Accept a bounded reason-only report for an accessible image",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{48}$"
+            }
+          }
+        ],
+        "description": "Maximum raw JSON body1024 bytes. Repeated reports MUST preserve first accepted reason. Acceptance does not automatically block image, change expiry or promise completed moderation. Operator response/retention is a public-release gate.",
+        "requestBody": {
+          "required": true,
+          "description": "application/json reason enum only; at most1024 bytes, bounded while reading.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Report"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Report accepted.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Reported"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request/JSON.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "malformed_request"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "not": {
+                        "required": [
+                          "receiptState"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Missing/expired/blocked/deleted resource.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "not_found"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "not": {
+                        "required": [
+                          "receiptState"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Report body exceeds1024 bytes.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "too_large"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "not": {
+                        "required": [
+                          "receiptState"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Report must use application/json.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "unsupported_media_type"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "not": {
+                        "required": [
+                          "receiptState"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid report reason or fields.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "invalid_report"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "not": {
+                        "required": [
+                          "receiptState"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or bounded admission capacity reached; no unbounded queue.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              },
+              "Retry-After": {
+                "description": "Required positive integer seconds. Honor within bounded client window.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "rate_limited",
+                            "busy"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "not": {
+                        "required": [
+                          "receiptState"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected report-submission failure; no upload-receipt lookup is required.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "internal_error"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "not": {
+                        "required": [
+                          "receiptState"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Report service/storage unavailable; honor Retry-After for bounded report retry. No upload-receipt lookup is required.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "private, no-store"
+                }
+              },
+              "Referrer-Policy": {
+                "description": "Required on every response.",
+                "schema": {
+                  "type": "string",
+                  "const": "no-referrer"
+                }
+              },
+              "Retry-After": {
+                "description": "Required positive integer seconds. Honor within bounded client window.",
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "error": {
+                          "type": "string",
+                          "enum": [
+                            "unavailable",
+                            "storage_unavailable"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "not": {
+                        "required": [
+                          "receiptState"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ReceiptCapability": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Idempotency-Key",
+        "description": "Anonymous secret receipt capability, not person/app authentication. Random256-bit lowerhex64. POST and result only; no developer secret bundled in app."
+      }
+    },
+    "schemas": {
+      "ReadyImage": {
+        "type": "object",
+        "additionalProperties": true,
+        "description": "Clients ignore unknown additive fields, validate required fields, exact id/url agreement, and expiresAt-readyAt=86400000. Limits are decimal bytes/pixels.",
+        "required": [
+          "id",
+          "url",
+          "readyAt",
+          "expiresAt",
+          "width",
+          "height",
+          "bytes",
+          "inputBytes",
+          "format"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{48}$"
+          },
+          "url": {
+            "type": "string",
+            "pattern": "^/i/[0-9a-f]{48}$",
+            "description": "Relative path only. Resolve against configured web origin and validate path/id/origin before Copy/Open."
+          },
+          "readyAt": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Server epoch milliseconds, publication time."
+          },
+          "expiresAt": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Server epoch milliseconds, exactly readyAt+86400000."
+          },
+          "width": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1920
+          },
+          "height": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1920
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5000000
+          },
+          "inputBytes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000000
+          },
+          "format": {
+            "type": "string",
+            "const": "webp"
+          }
+        },
+        "example": {
+          "id": "0123456789abcdef0123456789abcdef0123456789abcdef",
+          "url": "/i/0123456789abcdef0123456789abcdef0123456789abcdef",
+          "readyAt": 1791417600000,
+          "expiresAt": 1791504000000,
+          "width": 1280,
+          "height": 720,
+          "bytes": 123456,
+          "inputBytes": 345678,
+          "format": "webp"
+        }
+      },
+      "Error": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "error",
+          "message"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "description": "Stable machine code; unknown codes fail safely."
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Human text; no stack, path, image, clipboard or other-upload details."
+          },
+          "receiptState": {
+            "type": "string",
+            "const": "failed",
+            "description": "Optional only on upload POST or receipt GET, only after durable terminal-failure commit. Absent marker never proves persistence. Framing/admission and read/report errors must omit it."
+          }
+        },
+        "example": {
+          "error": "invalid_image",
+          "message": "The image could not be accepted."
+        }
+      },
+      "Processing": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "processing"
+          }
+        },
+        "example": {
+          "status": "processing"
+        }
+      },
+      "Report": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "reason"
+        ],
+        "properties": {
+          "reason": {
+            "type": "string",
+            "enum": [
+              "inappropriate",
+              "copyright",
+              "other"
+            ]
+          }
+        },
+        "example": {
+          "reason": "other"
+        }
+      },
+      "Reported": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "reported"
+        ],
+        "properties": {
+          "reported": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "example": {
+          "reported": true
+        }
+      },
+      "RecordedUploadFailure": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Error"
+          },
+          {
+            "type": "object",
+            "required": [
+              "receiptState"
+            ],
+            "properties": {
+              "receiptState": {
+                "type": "string",
+                "const": "failed"
+              },
+              "error": {
+                "type": "string",
+                "enum": [
+                  "invalid_image",
+                  "storage_full",
+                  "storage_unavailable",
+                  "internal_error"
+                ]
+              }
+            }
+          }
+        ],
+        "description": "Durably committed terminal receipt only. Exhaustive HTTP/code pairs:422 invalid_image,507 storage_full,503 storage_unavailable,500 internal_error. Never rePOST this key; new share requires reselection, consent and new key.",
+        "x-http-status-code-pairs": {
+          "422": "invalid_image",
+          "507": "storage_full",
+          "503": "storage_unavailable",
+          "500": "internal_error"
+        },
+        "example": {
+          "error": "storage_unavailable",
+          "message": "Storage is unavailable.",
+          "receiptState": "failed"
+        }
+      }
+    }
+  },
+  "x-status": "proposed-not-implemented-not-deployed",
+  "x-input-max-bytes": 10000000,
+  "x-input-max-pixels": 16000000,
+  "x-input-max-edge": 8192,
+  "x-receipt-retention-ms": 172800000,
+  "x-client-post-retry-window-ms": 600000,
+  "x-image-lifetime-ms": 86400000
+}

@@ -1,0 +1,22 @@
+name: Propuesta
+description: Propón una mejora y explica el problema que resuelve.
+title: "[Feature]: "
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: Necesidad o problema
+      description: Describe quién lo encuentra y en qué situación.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Comportamiento deseado
+      description: Incluye plataforma y un ejemplo que permita comprobar la mejora.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas o contexto

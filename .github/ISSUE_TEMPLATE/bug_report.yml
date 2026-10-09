@@ -1,0 +1,30 @@
+name: Error
+description: Describe un problema reproducible de la aplicación.
+title: "[Bug]: "
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Versión de Uploadimg Desktop
+      placeholder: 0.1.0-beta.1
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Versión de macOS y arquitectura
+      placeholder: macOS 26.6.2, Apple Silicon arm64
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Pasos, resultado esperado y resultado observado
+      description: Incluye si la detección del portapapeles estaba activada. Usa imágenes de prueba sin datos personales.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidencia adicional
+      description: Capturas o mensajes de error sin credenciales ni contenido privado.

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <title>Uploadimg Desktop</title>
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="app.mjs"></script>
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="identity"><span class="app-icon" aria-hidden="true">↑</span><h1>Uploadimg</h1></div>
+      <span class="simulation-badge">Prueba local · Subida simulada</span>
+    </header>
+    <main>
+      <div id="browser-notice" class="notice" hidden>Abre Uploadimg Desktop para utilizar las imágenes copiadas y las acciones nativas.</div>
+      <section class="settings" aria-labelledby="sources-heading">
+        <div class="section-heading"><h2 id="sources-heading">Fuentes de imágenes</h2><button id="pause" class="quiet" disabled>Pausar</button></div>
+        <label class="source-option"><input id="clipboard" type="checkbox" disabled><span><strong>Detectar imágenes copiadas</strong><span id="clipboard-detail" class="detail">Desactivado por defecto. Actívalo para detectar imágenes del portapapeles.</span></span></label>
+        <label class="source-option unavailable"><input type="checkbox" disabled><span><strong>Carpeta de capturas</strong><span class="detail">Pendiente de integración en esta prueba.</span></span></label>
+        <div class="notifications"><div><strong>Notificaciones</strong><p id="notification-detail" class="detail">Comprobando disponibilidad…</p></div><button id="notifications" class="quiet" disabled>Solicitar permiso</button></div>
+      </section>
+      <div class="status-line"><span id="status" role="status">Conectando con la aplicación…</span><span id="busy" hidden>Procesando…</span></div>
+      <p id="error" class="error" role="alert" hidden></p>
+      <section aria-labelledby="pending-heading">
+        <div class="section-heading"><h2 id="pending-heading">Imágenes pendientes <span id="pending-count" class="count">0</span></h2><div class="button-group"><button id="paste" class="quiet" disabled>Pegar imagen</button><button id="generate" class="quiet" disabled>Generar imagen de prueba</button></div></div>
+        <div id="pending-empty" class="empty"><strong>Tus imágenes aparecerán aquí</strong><p id="capture-hint">Activa la detección de imágenes copiadas o genera una imagen de prueba.</p><p>Revisa cada imagen y elige Compartir o Ignorar.</p></div>
+        <div id="pending-list" class="candidate-list"></div>
+        <figure id="selected-preview" class="selected-preview" hidden><figcaption>Vista previa de la imagen seleccionada</figcaption><img id="selected-image" alt="Vista previa de la imagen seleccionada"></figure>
+      </section>
+      <section class="results-section" aria-labelledby="results-heading">
+        <div class="section-heading"><h2 id="results-heading">Enlaces simulados <span id="results-count" class="count">0</span></h2><span class="detail">Máximo 20</span></div>
+        <p id="results-empty" class="empty result-empty">Cuando compartas una imagen, aparecerá un enlace ficticio aquí.</p>
+        <ul id="results-list" class="result-list"></ul>
+      </section>
+    </main>
+    <footer>No se suben imágenes a un servidor. Los enlaces de esta prueba son ficticios.</footer>
+  </body>
+</html>
