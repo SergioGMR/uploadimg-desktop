@@ -36,6 +36,18 @@
         <p id="results-empty" class="empty result-empty">Cuando compartas una imagen, aparecerá su enlace temporal aquí.</p>
         <ul id="results-list" class="result-list"></ul>
       </section>
+      <section class="updates settings" aria-labelledby="updates-heading">
+        <div class="section-heading"><h2 id="updates-heading">Actualizaciones</h2><span id="update-version" class="detail">Versión actual: pendiente de consultar</span></div>
+        <p id="update-offer" hidden></p>
+        <p id="update-status" class="detail" role="status">Consultando actualizaciones…</p>
+        <p id="update-blocked" class="detail" hidden></p>
+        <p id="update-recovery" class="error" role="alert" hidden></p>
+        <div class="button-group update-actions"><button id="update-check" class="quiet" disabled>Buscar actualizaciones</button><button id="update-install" class="primary" aria-controls="update-consent" disabled hidden>Instalar y reiniciar</button></div>
+        <div id="update-consent" class="update-consent" role="group" aria-label="Confirmar actualización" hidden>
+          <p id="update-consent-text"></p>
+          <div class="button-group"><button id="update-confirm" class="primary" aria-describedby="update-consent-text" disabled>Confirmar instalación y reinicio</button><button id="update-cancel" disabled>Cancelar</button></div>
+        </div>
+      </section>
     </main>
     <footer>Las imágenes se envían solo al pulsar Compartir. La detección y la vista previa no autorizan una subida.</footer>
   </body>

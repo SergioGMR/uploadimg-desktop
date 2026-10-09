@@ -3,17 +3,27 @@ name = "uploadimg-desktop"
 version = "0.1.0"
 edition = "2021"
 build = "build.rs"
+default-run = "uploadimg-desktop"
 
 [build-dependencies]
-tauri-build = { version = "=2.6.2", features = [] }
+tauri-build = { version = "=2.7.1", features = [] }
+semver = "=1.0.28"
 
 [dependencies]
 uploadimg-core = { path = "../crates/core" }
-tauri = { version = "=2.11.2", default-features = false, features = ["wry", "compression"] }
+tauri = { version = "=2.12.2", default-features = false, features = ["wry", "compression"] }
 serde = { version = "=1.0.228", features = ["derive"] }
 serde_json = "=1.0.150"
 base64 = "=0.22.1"
 getrandom = "=0.3.4"
+semver = "=1.0.28"
+tauri-plugin-updater = "=2.13.2"
+reqwest = { version = "=0.13.4", default-features = false }
+tokio = { version = "=1.52.3", features = ["time", "sync", "rt"] }
+minisign-verify = "=0.2.5"
+
+[dev-dependencies]
+tauri = { version = "=2.12.2", default-features = false, features = ["test"] }
 
 [features]
 default = ["custom-protocol"]

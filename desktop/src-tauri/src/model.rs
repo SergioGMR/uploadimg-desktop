@@ -74,6 +74,7 @@ pub enum Operation {
         candidate_id: Option<String>,
     },
     Quit,
+    CheckUpdate,
     Upload {
         id: String,
         job: crate::upload::Job,
@@ -87,6 +88,7 @@ pub struct EffectBatch {
 
 pub struct Model {
     delivery_revision: u64,
+    updating: bool,
     pub core: Core,
     pub generation: u64,
     lifecycle: u64,
@@ -100,7 +102,7 @@ pub struct Model {
 }
 impl Model {
     pub fn new(native_available: bool) -> Self {
-        Self { delivery_revision: 0, core: Core::default(), generation: 0, lifecycle: 0, previews: HashMap::new(), selected_candidate: None,
+        Self { delivery_revision: 0, updating: false, core: Core::default(), generation: 0, lifecycle: 0, previews: HashMap::new(), selected_candidate: None,
             selected_result: None, notifications: if native_available { "not_requested" } else { "unavailable" }.into(),
             status: if native_available { "Subidas a uploadimg.vercel.app mediante Compartir explícito. Portapapeles apagado." }
                 else { "Adaptadores nativos no disponibles en esta plataforma. No se ha verificado su ejecución." }.into(), native_available, upload: None }
@@ -154,6 +156,56 @@ impl Model {
             live_ids,
             operations,
         }
+    }
+    pub fn update_blocked_reason(&self) -> Option<String> {
+        if self.updating {
+            Some("Actualización en curso.".into())
+        } else if !self.core.pending().is_empty() {
+            Some("Termina o ignora las imágenes pendientes antes de instalar.".into())
+        } else if let Some(upload) = &self.upload {
+            Some(
+                if upload.recovery.is_some() {
+                    "Recupera el enlace pendiente antes de instalar."
+                } else {
+                    "Espera a que termine la subida antes de instalar."
+                }
+                .into(),
+            )
+        } else {
+            None
+        }
+    }
+    pub fn begin_update(&mut self, _now: u64) -> Result<(), String> {
+        if let Some(reason) = self.update_blocked_reason() {
+            return Err(reason);
+        }
+        self.updating = true;
+        self.generation = self
+            .generation
+            .checked_add(1)
+            .expect("source control token exhausted");
+        Ok(())
+    }
+    pub fn end_update(&mut self) {
+        self.updating = false;
+        self.generation = self
+            .generation
+            .checked_add(1)
+            .expect("source control token exhausted");
+    }
+    pub fn update_safe(&self) -> bool {
+        self.updating && self.core.pending().is_empty() && self.upload.is_none()
+    }
+    pub fn require_idle(&self) -> Result<(), String> {
+        if self.updating {
+            Err("Actualización en curso; espera antes de añadir o compartir imágenes.".into())
+        } else {
+            Ok(())
+        }
+    }
+    pub fn require_admission(&self) -> Result<(), String> {
+        self.require_idle()?;
+        self.require_native()
     }
     pub fn require_native(&self) -> Result<(), String> {
         if self.native_available {
@@ -242,13 +294,13 @@ impl Model {
     pub fn configure(&self, user_change: bool) -> Operation {
         Operation::Configure {
             enabled: self.core.clipboard_enabled(),
-            paused: self.core.paused(),
+            paused: self.core.paused() || self.updating,
             generation: self.generation,
             user_change,
         }
     }
     pub fn set_clipboard(&mut self, enabled: bool, now: u64) -> Result<Vec<Operation>, String> {
-        self.require_native()?;
+        self.require_admission()?;
         self.generation = self
             .generation
             .checked_add(1)
@@ -285,6 +337,7 @@ impl Model {
         action: &str,
         now: u64,
     ) -> Result<Vec<Operation>, String> {
+        self.require_idle()?;
         if action == "share" {
             self.require_native()?;
             if let Some(upload) = &mut self.upload {
@@ -444,6 +497,23 @@ impl Model {
         }
     }
     pub fn apply_event(&mut self, event: Event, now: u64) -> Vec<Operation> {
+        if self.updating {
+            // Opening the status window is a pure UI action. Keep it reachable
+            // even when a retained backup requires manual recovery, while all
+            // image, Share and lifecycle callbacks remain fenced.
+            return if matches!(
+                event,
+                Event::Control {
+                    kind: 6,
+                    code: 7,
+                    ..
+                }
+            ) {
+                vec![Operation::ShowWindow { candidate_id: None }]
+            } else {
+                vec![]
+            };
+        }
         self.tick(now);
         match event {
             Event::Image(event) => {
@@ -613,6 +683,7 @@ impl Model {
                     7 => Ok(vec![Operation::ShowWindow { candidate_id: None }]),
                     8 => Ok(self.set_paused(!self.core.paused(), now)),
                     9 => Ok(vec![Operation::Quit]),
+                    10 => Ok(vec![Operation::CheckUpdate]),
                     _ => Err("Acción nativa desconocida.".into()),
                 };
                 match outcome {

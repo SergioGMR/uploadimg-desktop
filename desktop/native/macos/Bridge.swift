@@ -203,17 +203,20 @@ final class NativeBridge: NSObject, UNUserNotificationCenterDelegate {
         emit(kind: 5, code: 0)
     }
     @objc private func show() { emit(kind: 6, code: 7) }
+    @objc private func checkUpdates() { emit(kind: 6, code: 10) }
     @objc private func togglePause() { emit(kind: 6, code: 8) }
     @objc private func quit() { emit(kind: 6, code: 9) }
-    private func updateTray() {
+    func makeTrayMenu() -> NSMenu {
         let menu = NSMenu()
         for (title, action) in [("Abrir UploadIMG", #selector(show)),
+                                 ("Buscar actualizaciones", #selector(checkUpdates)),
                                  (paused ? "Reanudar" : "Pausar", #selector(togglePause)), ("Salir", #selector(quit))] {
             let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
             item.target = self; menu.addItem(item)
         }
-        tray?.menu = menu
+        return menu
     }
+    private func updateTray() { tray?.menu = makeTrayMenu() }
 
     func requestNotifications() {
         emit(kind: 4, code: 2)

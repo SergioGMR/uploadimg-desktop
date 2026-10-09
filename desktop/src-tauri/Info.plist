@@ -7,7 +7,7 @@
 <key>CFBundleIconFile</key><string>icon.icns</string>
 <key>CFBundleExecutable</key><string>UploadimgDesktop</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleVersion</key><string>2</string>
+<key>CFBundleVersion</key><string>3</string>
 <key>CFBundleShortVersionString</key><string>0.1.0</string>
 <key>LSMinimumSystemVersion</key><string>15.4</string>
 <key>NSHighResolutionCapable</key><true/>

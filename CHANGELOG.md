@@ -3,6 +3,20 @@
 Changes follow [Semantic Versioning 2.0.0](https://semver.org/).
 `VERSION` identifies the distribution; application manifests hold its numeric base.
 
+## [0.1.0-beta.3] - Unreleased
+
+### Added
+
+- Local macOS arm64 automatic-update integration and signed updater packaging.
+- Manual GitHub Actions build workflow producing a DMG and signed update artifacts; release publication remains a separate action.
+
+### Availability
+
+- Local development version, not a published download. The first updater-capable version requires manual installation.
+- A headless macOS harness verified real signed beta.3→beta.4 replacement of a disposable bundle and signature/version rejection; beta.4 is a local fixture only.
+- GUI updates, automatic restart, Gatekeeper, recovery after a real filesystem failure, workflow execution and release/feed publication remain unverified.
+- Debug bundle with Apple ad-hoc signing; updater archive signing is separate. No Developer ID or notarization; Windows/Linux are unverified.
+
 ## [0.1.0-beta.2]
 
 ### Added

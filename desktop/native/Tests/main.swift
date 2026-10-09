@@ -71,6 +71,11 @@ test("private native pasteboard TIFF roundtrip, no general clipboard or permissi
     guard case let .image(bytes) = monitor.poll(wrapped) else { throw Failure(message: "private TIFF missing") }
     try expect(try ImageDecoder.prepare(bytes).image.width == 64, "private TIFF decode")
 }
+test("tray update check has exact visible title") {
+    let bridge = NativeBridge(boardFactory: { FakeBoard() })
+    let menu = bridge.makeTrayMenu()
+    try expect(menu.items.map(\.title) == ["Abrir UploadIMG", "Buscar actualizaciones", "Pausar", "Salir"], "update tray title missing or reordered")
+}
 var callbackOriginal = Data(); var callbackThumbnail = Data(); var callbackText = Data(); var callbackMeta: [UInt64] = []
 func receiver(_ kind: Int32, _ generation: UInt64, _ lifecycle: UInt64, _ source: Int32, _ width: UInt32, _ height: UInt32,
               _ original: UnsafePointer<UInt8>?, _ originalLen: Int, _ thumbnail: UnsafePointer<UInt8>?, _ thumbnailLen: Int,
@@ -79,6 +84,14 @@ func receiver(_ kind: Int32, _ generation: UInt64, _ lifecycle: UInt64, _ source
     if let original { callbackOriginal = Data(bytes: original, count: originalLen) }
     if let thumbnail { callbackThumbnail = Data(bytes: thumbnail, count: thumbnailLen) }
     if let text { callbackText = Data(bytes: text, count: textLen) }
+}
+test("tray update action emits only update-check callback") {
+    let bridge = NativeBridge(boardFactory: { FakeBoard() })
+    bridge.callback = receiver
+    let item = bridge.makeTrayMenu().items[1]
+    guard let selector = item.action else { throw Failure(message: "update action missing") }
+    _ = bridge.perform(selector)
+    try expect(callbackMeta == [6, 0, 0, 10, 0, 0], "tray did not emit narrow check action")
 }
 test("native FFI emits temporary immutable buffers with explicit source/generation metadata") {
     let prepared = try ImageDecoder.prepare(SyntheticImage.make())

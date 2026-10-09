@@ -28,17 +28,20 @@ class Node {
   getAttribute(key) { return this.attributes.get(key) ?? null; }
   removeAttribute(key) { this.attributes.delete(key); }
   addEventListener(event, handler) { this.listeners.set(event, handler); }
+  removeEventListener(event, handler) { if (this.listeners.get(event) === handler) this.listeners.delete(event); }
   async click() { if (!this.disabled) await this.listeners.get('click')?.(); }
 }
 let imports = 0;
 async function setup(initial) {
   const nodes = Object.fromEntries([...html.matchAll(/id="([^"]+)"/g)].map(([, id]) => [id, new Node()]));
   const calls = [];
+  const updateStatus = { state: 'disabled', currentVersion: '0.1.0-beta.2', offeredVersion: null,
+    channel: 'beta', message: 'Configuración pendiente.', recoveryPath: null, canInstall: false, blockedReason: null };
   let current = initial, poll;
   const walk = node => [node, ...node.children.flatMap(walk)];
   globalThis.document = { getElementById: id => nodes[id], createElement: tag => new Node(tag),
     querySelectorAll: () => Object.values(nodes).flatMap(walk).filter(node => node.dataset.command) };
-  globalThis.window = { __TAURI__: { core: { invoke: async (command, args) => { calls.push([command, args]); return current; } } },
+  globalThis.window = { __TAURI__: { core: { invoke: async (command, args) => { calls.push([command, args]); return command.startsWith('updater_') ? updateStatus : current; } } },
     setInterval: callback => { poll = callback; return 1; }, clearInterval() {}, addEventListener() {} };
   await import(`../app.mjs?test=${++imports}`);
   await flush();
@@ -55,11 +58,23 @@ test('visible brand and consent explain the service and temporary public links',
   assert.doesNotMatch(html, /simulad|fictici|No se suben/i);
 });
 
+test('update panel is wired to read-only native status and keeps the existing image controls', async () => {
+  assert.match(html, /id="update-check"[^>]*>Buscar actualizaciones</);
+  assert.match(html, /id="update-install"[^>]*>Instalar y reiniciar</);
+  const app = await setup(state());
+  assert.equal(app.calls.filter(([command]) => command === 'updater_status').length, 1);
+  assert.equal(app.calls.filter(([command]) => command === 'updater_check').length, 0);
+  assert.equal(app.nodes.generate.disabled, false);
+  assert.equal(app.nodes.clipboard.checked, false);
+  assert.equal(app.nodes['update-version'].textContent, 'Versión actual: 0.1.0-beta.2');
+  assert.equal(app.nodes['update-check'].disabled, true);
+});
+
 test('sharing is click-only and a live upload disables every candidate Share', async () => {
   const app = await setup(state({ pending: [candidate] }));
   const share = app.buttons('pending-list').find(button => button.textContent === 'Compartir');
   assert.ok(share, 'the real Share action must be visible');
-  assert.deepEqual(app.calls, [['get_state', {}]], 'rendering a candidate never starts an upload');
+  assert.deepEqual(app.calls, [['updater_status', {}], ['get_state', {}]], 'rendering a candidate only polls states and never starts an upload');
   await share.click();
   assert.deepEqual(app.calls.at(-1), ['candidate_action', { id: candidateId, action: 'share' }]);
   await app.update(state({ pending: [candidate], upload: { id: 'c'.repeat(32), status: 'uploading' } }));

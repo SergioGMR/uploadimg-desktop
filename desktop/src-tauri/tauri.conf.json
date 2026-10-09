@@ -3,19 +3,54 @@
   "productName": "UploadIMG",
   "version": "0.1.0",
   "identifier": "local.uploadimg.desktop.m1",
-  "build": { "frontendDist": "../ui" },
+  "build": {
+    "frontendDist": "../ui"
+  },
   "app": {
     "withGlobalTauri": true,
-    "windows": [{ "label": "main", "title": "UploadIMG", "width": 1060, "height": 760, "minWidth": 760, "minHeight": 620 }],
+    "windows": [
+      {
+        "label": "main",
+        "title": "UploadIMG",
+        "width": 1060,
+        "height": 760,
+        "minWidth": 760,
+        "minHeight": 620
+      }
+    ],
     "security": {
       "csp": "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src ipc: http://ipc.localhost; font-src 'self'; base-uri 'none'; form-action 'none'; frame-src 'none'; object-src 'none'",
-      "capabilities": [{
-        "identifier": "main-local-commands",
-        "description": "Only bundled main UI can invoke the explicit image lifecycle commands.",
-        "windows": ["main"],
-        "permissions": ["allow-get-state", "allow-generate-synthetic", "allow-set-clipboard-enabled", "allow-paste-image", "allow-set-paused", "allow-request-notifications", "allow-candidate-action", "allow-result-action"]
-      }]
+      "capabilities": [
+        {
+          "identifier": "main-local-commands",
+          "description": "Only bundled main UI can invoke the explicit image lifecycle commands.",
+          "windows": [
+            "main"
+          ],
+          "permissions": [
+            "allow-get-state",
+            "allow-generate-synthetic",
+            "allow-set-clipboard-enabled",
+            "allow-paste-image",
+            "allow-set-paused",
+            "allow-request-notifications",
+            "allow-candidate-action",
+            "allow-result-action",
+            "allow-updater-status",
+            "allow-updater-check",
+            "allow-updater-install"
+          ]
+        }
+      ]
     }
   },
-  "bundle": { "active": false }
+  "bundle": {
+    "active": false
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "",
+      "requireSignedVersion": true
+    }
+  }
 }

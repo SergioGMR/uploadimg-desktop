@@ -6,6 +6,7 @@ import json
 import os
 import plistlib
 import re
+import stat
 import subprocess
 import sys
 
@@ -52,10 +53,14 @@ def bundle_entries(app):
     entries = {}
     for path in sorted(app.rglob('*')):
         relative = path.relative_to(app).as_posix()
+        mode = stat.S_IMODE(path.lstat().st_mode)
         if path.is_symlink():
-            raise ValueError(f'Unexpected bundle symlink: {relative}')
-        if path.is_file(): entries[relative] = {'sha256': digest(path)}
-        elif path.is_dir(): entries[relative] = {'directory': True}
+            target = os.readlink(path)
+            if os.path.isabs(target) or not path.resolve().is_relative_to(app.resolve()) or not path.exists():
+                raise ValueError(f'Unsafe or dangling bundle symlink: {relative}')
+            entries[relative] = {'symlink': target}
+        elif path.is_file(): entries[relative] = {'sha256': digest(path), 'mode': mode}
+        elif path.is_dir(): entries[relative] = {'directory': True, 'mode': mode}
         else: raise ValueError(f'Unsupported bundle entry: {relative}')
     return entries
 

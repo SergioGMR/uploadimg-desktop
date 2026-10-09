@@ -1,4 +1,27 @@
 fn main() {
+    let desktop = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap();
+    let version_path = desktop.parent().unwrap().join("VERSION");
+    println!("cargo:rerun-if-changed={}", version_path.display());
+    let version = std::fs::read_to_string(version_path).expect("VERSION must exist");
+    let version = version.trim();
+    semver::Version::parse(version).expect("VERSION must be full SemVer");
+    println!("cargo:rustc-env=UPLOADIMG_VERSION={version}");
+    let key_path = desktop.join("updater-public-key.txt");
+    println!("cargo:rerun-if-changed={}", key_path.display());
+    let key = match std::fs::read_to_string(key_path) {
+        Ok(key) => key.trim().to_owned(),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => String::new(),
+        Err(_) => panic!("updater public key must be readable"),
+    };
+    let key = if key.contains(['\n', '\r']) {
+        String::new()
+    } else {
+        key
+    };
+    println!("cargo:rustc-env=UPLOADIMG_UPDATER_PUBLIC_KEY={key}");
+
     if std::env::var("CARGO_CFG_TARGET_OS").as_deref() == Ok("macos") {
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .parent()
@@ -54,6 +77,9 @@ fn main() {
             "request_notifications",
             "candidate_action",
             "result_action",
+            "updater_status",
+            "updater_check",
+            "updater_install",
         ]),
     ))
     .expect("Tauri local configuration must load");

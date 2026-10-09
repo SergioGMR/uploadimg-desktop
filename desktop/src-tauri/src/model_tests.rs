@@ -681,3 +681,80 @@ fn real_wake_purges_pending_across_interleaved_control_and_acknowledgment() {
         assert_eq!(model.generation, 2);
     }
 }
+
+#[test]
+fn updater_guard_blocks_pending_images_upload_and_recovery_without_discarding_them() {
+    let mut model = Model::new(true);
+    model.apply_event(image(0, 2), 0);
+    assert!(model.begin_update(0).is_err());
+    assert_eq!(model.snapshot(0).pending.len(), 1);
+    let id = model.snapshot(0).pending[0].id.clone();
+    model.candidate_action(&id, "share", 0).unwrap();
+    assert!(model.begin_update(0).is_err());
+    model.finish_upload(&id, crate::upload::Outcome::Recover(serde_json::from_value(serde_json::json!({"id":"a".repeat(48),"secret":"b".repeat(64),"pathname":format!("uploadimg/v1/staging/{}","a".repeat(48)),"expiresAt":1000000,"tokenExpiresAt":700000})).unwrap()), 0);
+    assert!(model.begin_update(0).is_err());
+    assert_eq!(model.snapshot(0).upload.unwrap().status, "recoverable");
+}
+#[test]
+fn updater_guard_drops_queued_images_and_actions_and_failure_restores_normal_function() {
+    let mut model = Model::new(true);
+    model.begin_update(0).unwrap();
+    assert!(model.require_admission().is_err());
+    assert!(model.apply_event(image(model.generation, 2), 0).is_empty());
+    assert!(model.snapshot(0).pending.is_empty());
+    assert!(model.candidate_action("missing", "share", 0).is_err());
+    model.end_update();
+    assert!(model.require_admission().is_ok());
+    model.apply_event(image(model.generation, 2), 0);
+    assert_eq!(model.snapshot(0).pending.len(), 1);
+    assert!(!model.snapshot(0).clipboard_enabled);
+}
+#[test]
+fn tray_update_check_emits_no_show_or_focus_effect() {
+    let mut model = Model::new(true);
+    let ops = model.apply_event(
+        Event::Control {
+            kind: 6,
+            generation: 0,
+            lifecycle: 0,
+            code: 10,
+            text: String::new(),
+        },
+        0,
+    );
+    assert!(matches!(ops.as_slice(), [Operation::CheckUpdate]));
+    assert!(!shows_window(&ops));
+}
+
+#[test]
+fn update_recovery_keeps_tray_show_available_without_reopening_admission_or_share() {
+    let mut model = Model::new(true);
+    model.begin_update(0).unwrap();
+    let control = |code| Event::Control {
+        kind: 6,
+        generation: model.generation,
+        lifecycle: 0,
+        code,
+        text: String::new(),
+    };
+    let ops = model.apply_event(control(7), 0);
+    assert!(matches!(
+        ops.as_slice(),
+        [Operation::ShowWindow { candidate_id: None }]
+    ));
+    assert!(model.require_admission().is_err());
+    assert!(model.candidate_action("missing", "share", 0).is_err());
+    assert!(model.apply_event(image(model.generation, 2), 0).is_empty());
+    for code in [2, 8, 9, 10] {
+        let event = Event::Control {
+            kind: 6,
+            generation: model.generation,
+            lifecycle: 0,
+            code,
+            text: String::new(),
+        };
+        assert!(model.apply_event(event, 0).is_empty());
+    }
+    assert!(model.snapshot(0).pending.is_empty());
+    assert!(model.update_safe());
+}

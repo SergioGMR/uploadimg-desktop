@@ -1,6 +1,8 @@
 mod events;
 mod model;
 mod native;
+mod update_trust;
+mod updater;
 mod upload;
 
 use model::{EffectBatch, Model, Operation, UiState};
@@ -69,6 +71,12 @@ fn execute(app: &tauri::AppHandle, batch: EffectBatch) {
                     }
                 });
             }
+            Operation::CheckUpdate => {
+                let handle = app.clone();
+                tauri::async_runtime::spawn(async move {
+                    let _ = updater::check(handle).await;
+                });
+            }
             Operation::Quit => app.exit(0),
             Operation::Upload { id, job } => {
                 let handle = app.clone();
@@ -115,7 +123,7 @@ fn generate_synthetic(state: State<'_, Runtime>) -> Result<UiState, String> {
         .model
         .lock()
         .map_err(|_| "Estado local no disponible.".to_string())?
-        .require_native()?;
+        .require_admission()?;
     native::generate();
     state.snapshot()
 }
@@ -125,7 +133,7 @@ fn paste_image(state: State<'_, Runtime>) -> Result<UiState, String> {
         .model
         .lock()
         .map_err(|_| "Estado local no disponible.".to_string())?
-        .require_native()?;
+        .require_admission()?;
     native::paste();
     state.snapshot()
 }
@@ -143,7 +151,10 @@ fn set_paused(
     state: State<'_, Runtime>,
     paused: bool,
 ) -> Result<UiState, String> {
-    change(&app, &state, |model, now| Ok(model.set_paused(paused, now)))
+    change(&app, &state, |model, now| {
+        model.require_idle()?;
+        Ok(model.set_paused(paused, now))
+    })
 }
 #[tauri::command]
 fn request_notifications(state: State<'_, Runtime>) -> Result<UiState, String> {
@@ -183,7 +194,43 @@ fn result_action(
     })
 }
 
+#[tauri::command]
+fn updater_status(app: tauri::AppHandle) -> Result<updater::Status, String> {
+    updater::status(&app)
+}
+#[tauri::command]
+async fn updater_check(app: tauri::AppHandle) -> Result<updater::Status, String> {
+    updater::check(app).await
+}
+#[tauri::command]
+async fn updater_install(
+    app: tauri::AppHandle,
+    version: String,
+    confirm_restart: bool,
+) -> Result<updater::Status, String> {
+    updater::install(app, version, confirm_restart).await
+}
+
+fn version_request(args: &[std::ffi::OsString]) -> bool {
+    args == [std::ffi::OsString::from("--version")]
+}
+#[cfg(test)]
+mod version_cli_tests {
+    #[test]
+    fn full_version_query_is_an_explicit_early_exit() {
+        assert!(super::version_request(&["--version".into()]));
+        assert!(!super::version_request(&[]));
+        assert!(!super::version_request(&[
+            "--version".into(),
+            "unexpected".into()
+        ]));
+    }
+}
 fn main() {
+    if version_request(&std::env::args_os().skip(1).collect::<Vec<_>>()) {
+        println!("UploadIMG {}", updater::CURRENT_VERSION);
+        return;
+    }
     let mut context = tauri::generate_context!();
     // Only macOS has the native tray. Other platforms keep an accessible window.
     #[cfg(target_os = "macos")]
@@ -198,6 +245,8 @@ fn main() {
         window.focus = false;
     }
     tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .manage(updater::UpdaterState::new())
         .manage(Runtime {
             model: Mutex::new(Model::new(native::available())),
             started: native::monotonic_millis(),
@@ -210,12 +259,19 @@ fn main() {
             set_paused,
             request_notifications,
             candidate_action,
-            result_action
+            result_action,
+            updater_status,
+            updater_check,
+            updater_install
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             native::start();
+            let startup_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let _ = updater::check(startup_handle).await;
+            });
             let handle = app.handle().clone();
             // This engine runs independently of hidden/closed/throttled WebView JS.
             std::thread::spawn(move || loop {

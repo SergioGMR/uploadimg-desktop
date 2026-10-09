@@ -39,6 +39,11 @@ solo compartía enlaces simulados en `example.invalid`; sus instaladores se cons
 
 ## Desarrollo local
 
+El árbol de desarrollo es **0.1.0-beta.3, sin publicar** e incorpora el trabajo
+del actualizador y sus artefactos firmados. La descarga disponible sigue siendo
+beta.2; la primera versión con actualizador se instalará manualmente.
+Consulta [el estado y los límites de las actualizaciones](docs/automatic-updates.md).
+
 ```sh
 bash desktop/scripts/test.sh
 bash desktop/scripts/build.sh

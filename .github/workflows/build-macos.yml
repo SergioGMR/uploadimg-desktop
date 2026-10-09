@@ -1,0 +1,101 @@
+name: Build macOS arm64 beta artifacts
+
+# Produces review/download candidates only. It never publishes Releases or feeds.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-26 # GitHub-hosted Apple Silicon arm64
+    timeout-minutes: 90
+    env:
+      RUSTUP_TOOLCHAIN: 1.92.0
+      CARGO_TARGET_DIR: ${{ github.workspace }}/desktop/.build/cargo-target
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.21.0
+      - name: Validate host and install pinned Rust toolchain
+        run: |
+          test "$(uname -m)" = arm64
+          python3 -c 'import sys; assert sys.version_info >= (3, 11)'
+          rustup toolchain install 1.92.0 --profile minimal
+          rustc --version
+          xcodebuild -version
+          swift --version
+          node --version
+      - name: Check version and exact tag when dispatched from a tag
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          python3 scripts/test-version.py
+          python3 scripts/check-version.py
+          if [[ "$REF_TYPE" == tag ]]; then
+            python3 scripts/check-version.py --tag "$REF_NAME"
+          fi
+      - name: Fetch locked dependencies and install isolated official signer
+        run: |
+          cargo fetch --locked --manifest-path desktop/Cargo.toml
+          cargo install tauri-cli --version 2.12.1 --locked --root desktop/.build/tools/tauri-cli-2.12.1
+      - name: Run local contracts and build custom debug bundle
+        run: |
+          bash desktop/scripts/test.sh
+          python3 desktop/native/Tests/Branding/check.py
+          bash desktop/scripts/build.sh
+      - name: Package manual DMG
+        run: bash desktop/scripts/package-dmg.sh
+      - name: Sign updater archive using ephemeral secret file
+        env:
+          UPLOADIMG_UPDATER_PRIVATE_KEY: ${{ secrets.UPLOADIMG_UPDATER_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.UPLOADIMG_UPDATER_KEY_PASSWORD }}
+          DYLD_LIBRARY_PATH: ${{ github.workspace }}/desktop/.build/native
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          import subprocess
+          key_contents = os.environ.pop('UPLOADIMG_UPDATER_PRIVATE_KEY', '')
+          if not key_contents:
+              raise SystemExit('Missing UPLOADIMG_UPDATER_PRIVATE_KEY secret; signed packaging is unavailable')
+          key_path = Path(os.environ['RUNNER_TEMP']) / 'uploadimg-updater.key'
+          try:
+              descriptor = os.open(key_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+              with os.fdopen(descriptor, 'w') as key_file:
+                  key_file.write(key_contents)
+              del key_contents
+              subprocess.run(['python3', 'desktop/scripts/package-updater.py', 'package',
+                              '--key-file', str(key_path)], check=True)
+              version = Path('VERSION').read_text().strip()
+              output = Path('desktop/.build/distribution') / (version + '-updater')
+              archive = output / f'UploadIMG-{version}-macos-arm64.app.tar.gz'
+              subprocess.run(['cargo', 'run', '--offline', '--locked', '--jobs', '2', '--manifest-path',
+                              'desktop/Cargo.toml', '-p', 'uploadimg-desktop', '--bin', 'verify-update', '--',
+                              str(archive), str(archive) + '.sig', 'desktop/updater-public-key.txt', version], check=True)
+          finally:
+              key_path.unlink(missing_ok=True)
+          PY
+      - name: Verify candidate checksums
+        run: |
+          VERSION="$(cat VERSION)"
+          (cd "desktop/.build/distribution/$VERSION" && shasum -a 256 -c SHA256SUMS)
+          (cd "desktop/.build/distribution/$VERSION-updater" && shasum -a 256 -c UPDATER-SHA256SUMS)
+      - name: Upload workflow artifacts for independent review
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: UploadIMG-macos-arm64-${{ github.sha }}-${{ github.run_id }}
+          path: |
+            desktop/.build/distribution/*/*.dmg
+            desktop/.build/distribution/*/*.app.tar.gz
+            desktop/.build/distribution/*/*.sig
+            desktop/.build/distribution/*/*.json
+            desktop/.build/distribution/*/*SHA256SUMS
+            desktop/.build/build-source.json
+          if-no-files-found: error
+          retention-days: 14

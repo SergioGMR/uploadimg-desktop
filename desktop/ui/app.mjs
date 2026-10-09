@@ -1,5 +1,6 @@
 import { createBridge } from './bridge.mjs';
 import { readUiState } from './state.mjs';
+import { createUpdaterPanel } from './updater.mjs';
 
 const byId = id => document.getElementById(id);
 const text = (element, value) => { if (element.textContent !== value) element.textContent = value; };
@@ -11,6 +12,10 @@ const candidateNodes = new Map(), resultNodes = new Map();
 let confirmedState = null, busy = false;
 
 const nativeInvoke = window.__TAURI__?.core?.invoke;
+const updaterElements = Object.fromEntries(['version', 'offer', 'status', 'blocked', 'recovery', 'check',
+  'install', 'consent', 'consent-text', 'confirm', 'cancel'].map(id => [`update-${id}`, byId(`update-${id}`)]));
+const updater = createUpdaterPanel({ elements: updaterElements,
+  invoke: typeof nativeInvoke === 'function' ? (command, args) => nativeInvoke(command, args) : undefined });
 const bridge = createBridge({
   invoke: typeof nativeInvoke === 'function' ? (command, args) => nativeInvoke(command, args) : undefined,
   onState(value) { confirmedState = readUiState(value); render(); },
@@ -197,6 +202,7 @@ if (!bridge.available) {
   text(elements['notification-detail'], 'Abre la aplicación para consultar su disponibilidad.');
 } else {
   void bridge.poll();
-  const interval = window.setInterval(() => { void bridge.poll(); }, 1000);
-  window.addEventListener('pagehide', () => window.clearInterval(interval), { once: true });
+  void updater.poll();
+  const interval = window.setInterval(() => { void bridge.poll(); void updater.poll(); }, 1000);
+  window.addEventListener('pagehide', () => { window.clearInterval(interval); updater.dispose(); }, { once: true });
 }

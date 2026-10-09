@@ -39,7 +39,7 @@ class PackagingGuards(unittest.TestCase):
         with self.assertRaises(ValueError):
             packaging.guard_output(base, self.root / 'outside', 'new.dmg')
 
-    def test_bundle_manifest_detects_bytes_and_rejects_symlinks(self):
+    def test_bundle_manifest_detects_bytes_modes_and_preserves_internal_symlinks(self):
         bundle = self.root / 'UploadIMG.app'
         bundle.mkdir()
         resource = bundle / 'icon.icns'
@@ -47,7 +47,11 @@ class PackagingGuards(unittest.TestCase):
         before = packaging.bundle_entries(bundle)
         resource.write_bytes(b'icon-two')
         self.assertNotEqual(before, packaging.bundle_entries(bundle))
-        (bundle / 'link').symlink_to(resource)
+        (bundle / 'link').symlink_to('icon.icns')
+        self.assertEqual(packaging.bundle_entries(bundle)['link']['symlink'], 'icon.icns')
+        resource.chmod(0o755)
+        self.assertNotEqual(before, packaging.bundle_entries(bundle))
+        (bundle / 'outside').symlink_to('../outside')
         with self.assertRaises(ValueError):
             packaging.bundle_entries(bundle)
 

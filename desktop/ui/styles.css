@@ -70,6 +70,11 @@ input[type="checkbox"] { width: 17px; height: 17px; margin: 1px 0 0; accent-colo
 .upload-panel p { font-size: 13px; }
 .upload-panel button { flex: none; }
 .results-section { margin-top: 24px; }
+.updates { margin-top: 24px; }
+.update-actions { margin-top: 12px; }
+.update-consent { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 12px; }
+.update-consent p { font-size: 13px; margin-bottom: 10px; }
+#update-recovery { margin: 10px 0 0; overflow-wrap: anywhere; }
 .result-empty { padding: 17px; }
 .result-list { padding: 0; margin: 0; list-style: none; display: grid; gap: 8px; }
 .result { display: flex; gap: 14px; align-items: center; justify-content: space-between; padding: 13px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }

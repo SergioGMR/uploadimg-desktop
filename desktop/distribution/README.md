@@ -2,27 +2,27 @@
 
 Verify the DMG against its `SHA256SUMS`, open it and drag **UploadIMG.app**
 onto **Applications**. Eject the disk and open UploadIMG from Applications.
-The app lives in the menu bar; select **Abrir UploadIMG** to show its window
-and **Salir** to quit.
+Close the previous app first. UploadIMG lives in the menu bar; select
+**Abrir UploadIMG** to show its window and **Salir** to quit.
 
-Clipboard detection starts **OFF** at each launch. Enable it only when you
-intend to detect copied images. **Compartir** is an explicit action that
-sends the selected image to `https://uploadimg.vercel.app`; returned links
-expire after 24 hours. Candidates and recovery state remain in memory and
-are lost on restart.
+This is a **0.1.0-beta.3 local, unreleased candidate**, short version **0.1.0**,
+build **3**, debug profile. Published beta.1/beta.2 artifacts remain separate.
+The first updater-capable version requires manual installation; no working
+public updater feed is claimed here. See `RELEASE-NOTES.txt` for check limits.
 
-This is the local, unpublished **0.1.0-beta.2** package: application version
-**0.1.0**, build **2**, debug profile. The earlier beta.1 installer remains a
-separate published artifact. See `RELEASE-NOTES.txt` for verification limits.
+Clipboard detection starts **OFF** each launch. Enable it only when you intend
+to detect copied images. **Compartir** sends the selected image explicitly to
+`https://uploadimg.vercel.app`; returned links expire after 24 hours. Candidates,
+result history and recovery state are in memory and lost on restart. Finish
+or explicitly discard pending images/recovery before confirming an update.
 
-The bundle has a local ad-hoc signature, without Developer ID or Apple
-notarization. macOS may block a downloaded copy. After verifying its origin
-and checksum, use the opening option macOS offers in **System Settings →
-Privacy & Security** if you choose to proceed. This package does not bypass
-macOS protections.
+The bundle is ad-hoc signed, without Developer ID or Apple notarization.
+macOS may block a downloaded copy. After verifying origin and checksum, use
+its opening option in **System Settings → Privacy & Security** if you choose
+to proceed. This package does not bypass macOS protections. Updater archive
+signing is separate and does not establish Gatekeeper acceptance.
 
-Earlier device evidence covers macOS **26.6.2**, Apple Silicon arm64. Checks
-of this exact new package, installed launch, another Mac and downloaded
-quarantine/Gatekeeper behavior must be recorded separately. The plist's
-15.4 minimum is metadata; Intel, Windows, Linux and other macOS versions
-have no verified compatibility claim.
+Earlier device evidence covers macOS **26.6.2** Apple Silicon. This exact
+candidate's installed launch, update/recovery, another Mac and download
+quarantine/Gatekeeper require separate checks. The plist minimum 15.4 is
+metadata; Intel, Windows/Linux and other macOS versions remain unverified.

@@ -1,37 +1,32 @@
-# UploadIMG 0.1.0-beta.2 — local, unpublished
+# UploadIMG 0.1.0-beta.3 — local, unreleased
 
-This development version adds the UploadIMG app name and macOS icon and
-connects explicit sharing to the existing `https://uploadimg.vercel.app`
-prepare/private-upload/finalize flow. Finalized `/i/` links expire after
-24 hours. An uncertain finalization can be retried with the same in-memory
-request without uploading the image again; restart loses recovery state.
-Clipboard detection starts OFF; dedicated-folder detection remains unavailable.
+This development candidate adds macOS arm64 automatic-update integration
+and signed updater artifact tooling. The first updater-capable version must
+be manually installed: published beta.1/beta.2 do not contain an updater.
+No release or channel feed publication is established by these notes.
 
-The package contains **UploadIMG.app**, an Applications shortcut and
-installation notes. It packages an existing debug build without compiling,
-re-signing or launching it. The application short version is **0.1.0**,
-build **2**. Signing is ad-hoc; there is no Developer ID or notarization.
+The DMG contains **UploadIMG.app**, an Applications shortcut and installation
+notes. It packages the reviewed custom debug bundle without compiling,
+re-signing or launching it. Application short version: **0.1.0**; build **3**.
+The bundle uses an Apple ad-hoc signature with no Developer ID/notarization.
+The updater archive uses a separate dedicated Tauri/minisign signature.
 
-The new installer is `UploadIMG-0.1.0-beta.2-macos-arm64.dmg` under
-`desktop/.build/distribution/0.1.0-beta.2/`. The published beta.1 installer
-and tag are preserved. Run `bash desktop/scripts/package-dmg.sh` only after
-the current source and bundle checks finish. Existing outputs are refused;
-use a new output subdirectory for a retry.
+Clipboard detection starts OFF. Sharing remains explicit and sends to
+`https://uploadimg.vercel.app`; finalized public links expire after 24 hours.
+Candidates, result history and recovery capabilities are in memory and lost
+on restart. Updates must block installation while images/uploads/unresolved
+recovery remain, and restart requires confirmation. Feed failures remain
+visible until real signed releases and channel manifests are published.
 
-`provenance.json` records packaging-time HEAD and dirty status, source digest,
-bundle hashes and DMG hash. Its null `compiled_source_commit` explicitly
-avoids attributing a prebuilt binary to the observed commit. `SHA256SUMS`
-covers the installer and provenance. Bundle identity/signatures/architecture,
-UDZO verification, read-only mounted comparisons and exact-device detach
-are packaging checks, not runtime evidence.
+`SHA256SUMS` covers this DMG and its `provenance.json`. DMG packaging checks
+cover metadata/icon/arm64/dependencies/ad-hoc signatures, UDZO integrity,
+read-only mounted comparisons and exact-device detach. Packaging-time HEAD
+is not a compiled-source claim; retain the separate source/bundle build
+receipt. Updater archive/signature/manifest validation is a separate gate.
 
-Validation of the exact beta.2 source, bundle, real upload and DMG remains
-pending until its local receipts are recorded. Earlier macOS 26.6.2 arm64
-observations do not prove this version's runtime. Installed-app launch,
-another Mac, downloaded quarantine/Gatekeeper, Intel, Windows, Linux and
-other macOS versions are NOT_RUN unless later evidence states otherwise.
-No release publication or download verification is claimed here.
-
-Rollback for this packaging unit removes only the packager/helper/tests,
-distribution instructions and newly generated beta.2 outputs. It leaves
-application behavior and all published beta.1 bytes untouched.
+Checks of this exact beta.3 installed app, update/recovery, CI execution,
+download quarantine/Gatekeeper and another Mac remain pending unless separate
+receipts record their execution. Historical beta.2 device confirmation does
+not prove this version. Intel, Windows/Linux and other macOS versions are
+unverified. No source commit, release publication or download verification
+is claimed by generating this package.
