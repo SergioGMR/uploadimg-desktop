@@ -1,0 +1,9 @@
+{
+  "platforms": {
+    "darwin-aarch64": {
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRUkFmM1FWNGVaWUVCaVVKZGhwQk9xZTZGUGVWK3h6N3pNM2VTYmxoOWJOYktmTXpqcEhNajhSVXN6RnlyVGxUY1lOQ2FaVFFPRjdZUjFjYm94ampDNDh0ZjduZTRHU0FVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNjQ5MjQyCWZpbGU6VXBsb2FkSU1HLTAuMS4wLWJldGEuMy1tYWNvcy1hcm02NC5hcHAudGFyLmd6CXZlcnNpb246MC4xLjAtYmV0YS4zClVlMmlhQUo4TmJ0cE9JM0tnT3NFWkJwanFQcnp1RG0wK1hnM0hTTW95aGZ1YTJ1L1BYWm1aT0JLdHJJdmpjaEUxd1Q0eU81RUx3SGxoajdjbkpkSkNnPT0K",
+      "url": "https://github.com/SergioGMR/uploadimg-desktop/releases/download/v0.1.0-beta.3/UploadIMG-0.1.0-beta.3-macos-arm64.app.tar.gz"
+    }
+  },
+  "version": "0.1.0-beta.3"
+}

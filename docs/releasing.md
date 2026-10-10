@@ -1,8 +1,8 @@
 # Release verified macOS artifacts
 
-The development version is **0.1.0-beta.3, unreleased**, bundle build **3**.
-The published manual download remains beta.2; preserve beta.1/beta.2 tags and
-installers. The first updater-capable release requires manual installation.
+The published version is **0.1.0-beta.3**, bundle build **3**, released on
+2026-10-10. Preserve beta.1/beta.2 tags and installers. Install beta.3 manually
+when upgrading from those versions: it is the first updater-capable release.
 Commits, pushes, tags, secrets/settings changes, workflow execution, Releases
 and feed publication need explicit authorization in the delivery task.
 
@@ -10,6 +10,17 @@ The user reported that the beta.2 DMG works, without an individual GUI case
 record. That evidence applies to installer SHA256
 `1a811ad7459ae9d69f923693052228812e2a11b2684c455d558620a1956e203b`,
 not to beta.3. Packaging, runtime, CI and download checks remain separate.
+
+The [beta.3 Release](https://github.com/SergioGMR/uploadimg-desktop/releases/tag/v0.1.0-beta.3)
+uses source `085264549565eb1c40261cfd959fcaa3f1c644c4` and the successful
+[exact-source build run](https://github.com/SergioGMR/uploadimg-desktop/actions/runs/38066375725).
+Its nine independently reviewed assets passed anonymous public-download
+comparison and package/signature verification. The owner authorized this exact
+beta and its verified beta manifest as a limited rollout while graphical update,
+restart, real filesystem-failure recovery and Gatekeeper checks remain pending.
+This is a beta.3-only exception to the complete update/recovery acceptance gate
+in step 4.6 below; it neither marks that matrix passed nor relaxes future gates.
+See [the release evidence](automatic-updates.md#beta3-release-evidence).
 
 ## 1. Review and check exact sources
 
@@ -113,8 +124,9 @@ locked dependencies, runs checks and builds the custom bundle using Rust
 The [documented macos-26 runner](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
 is arm64; actual toolchain/runtime identity is recorded by workflow logs.
 It requires `UPLOADIMG_UPDATER_PRIVATE_KEY` and optionally
-`UPLOADIMG_UPDATER_KEY_PASSWORD`. The owner must provision them separately;
-no secrets or settings are changed by the local implementation task.
+`UPLOADIMG_UPDATER_KEY_PASSWORD`. The owner provisions them separately; the
+beta.3 workflow successfully used the provisioned signing secret. Neither the
+documentation update nor artifact verification inspects its value.
 Missing key fails signing clearly. Dispatch from a tag verifies exact VERSION.
 The workflow verifies signed artifacts and uploads candidates only, with
 read-only contents permission. It has no release/feed publication job.

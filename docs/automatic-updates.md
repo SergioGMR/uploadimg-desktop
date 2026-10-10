@@ -1,13 +1,18 @@
 # Automatic updates for macOS arm64
 
-**Local development: 0.1.0-beta.3, unreleased.** The updater and artifact tooling
-are implemented locally. A headless macOS test performed real replacement of
-a disposable beta.3 bundle with a signed beta.4 fixture. GUI, automatic restart,
-Gatekeeper and recovery after an actual filesystem installation failure remain
-**NOT_RUN**, as do GitHub Actions, release/feed publication and remote download
-verification. Beta.4 is only a local test fixture, not a release. The published
-beta.2 download remains available; beta.1/beta.2 cannot update themselves.
-Install the first updater-capable version manually.
+**Published beta: 0.1.0-beta.3, released on 2026-10-10.** The exact-source
+macOS build workflow succeeded, the release was independently reviewed and all
+nine published assets were downloaded anonymously and verified. Install beta.3
+manually when upgrading from beta.1/beta.2, which do not contain an updater.
+The beta channel manifest points to beta.3; a same-version in-app check is
+expected to report up to date, but that live check remains separate evidence.
+
+A historical headless macOS test performed real replacement of a disposable
+beta.3 bundle with a signed beta.4 fixture. Beta.4 is not a release. GUI update
+confirmation, automatic restart, Gatekeeper and recovery after an actual
+filesystem installation failure remain **NOT_RUN**. This authorized beta.3
+rollout is a limited exception, not acceptance of the full update/recovery/
+restart matrix or a change to the general release gate.
 
 ## Application and safety boundary
 
@@ -59,8 +64,33 @@ the 137 automated regression checks are a separate result.
 This harness did not exercise GUI confirmation, application restart,
 Gatekeeper, a downloaded public Release, or recovery after an actual filesystem
 replacement failure. It did not modify the owner's installed application or
-publish beta.4. The repository remains beta.3; final source/artifact receipts
-must match the subsequent reviewed build.
+publish beta.4. Those historical fixture receipts are separate from the
+reviewed beta.3 source/artifact and public-download receipts below.
+
+## Beta.3 release evidence
+
+The [beta.3 Release](https://github.com/SergioGMR/uploadimg-desktop/releases/tag/v0.1.0-beta.3)
+was published on 2026-10-10 from source
+`085264549565eb1c40261cfd959fcaa3f1c644c4`. The
+[build run](https://github.com/SergioGMR/uploadimg-desktop/actions/runs/38066375725)
+succeeded on macOS 26.6.2 arm64 with 137 checks: 68 Rust, 17 Swift, 29 Node,
+15 packaging and 8 version checks. Two opt-in integration tests were skipped;
+CI did not repeat the headless replacement experiment or prove GUI runtime.
+
+Independent review accepted the exact source, nine artifacts and release notes.
+All nine assets were then downloaded by anonymous HTTPS and matched their
+accepted originals. Both checksum manifests, clean build/source receipts,
+matching DMG/updater bundle contents and modes, version-bound updater signature,
+DMG integrity/read-only mount, Apple signatures, packaged notes and the bundled
+executable's beta.3 `--version` output were checked on those downloads.
+Local receipts are under `desktop/.build/release-beta3/`, including
+`public-download-verification.json` and `public-verification/verification.json`.
+
+This exact beta was authorized for limited release and beta-feed activation
+after independent artifact review and download verification, with the complete
+update/recovery/restart matrix explicitly pending. The usual gate still requires
+that matrix; this exception does not mark it passed or apply to later releases.
+The owner's installed application was not used as an installation experiment.
 
 ## Network limits
 
@@ -129,13 +159,16 @@ cargo run --offline --locked --jobs 2 --manifest-path desktop/Cargo.toml \
 (cd "$OUTPUT" && shasum -a 256 -c UPDATER-SHA256SUMS)
 ```
 
-The future tracked feed paths are `updates/beta.json` and `updates/stable.json`,
-served from the corresponding raw GitHub main URLs. They remain absent until
-real release artifacts have been independently accepted and their downloads
-verified. No placeholder feed is generated into the repository. Beta does not
-use `releases/latest`, which excludes prereleases. Archive URLs in generated
-candidate manifests describe the future exact `v<VERSION>` release; they do
-not claim that an asset has already been uploaded.
+`updates/beta.json` is a byte-for-byte copy of the verified manifest downloaded
+from the beta.3 Release. Its production endpoint is
+`https://raw.githubusercontent.com/SergioGMR/uploadimg-desktop/main/updates/beta.json`;
+it contains only `platforms.darwin-aarch64` and the exact published beta.3 archive
+URL/signature. Feed commit/push, raw-endpoint verification and the live in-app
+query require separate delivery checks; copying the manifest does not establish
+them. `updates/stable.json` remains absent until a stable release meets its gate.
+Beta does not use `releases/latest`, which excludes prereleases. Future candidate
+manifests still need independent acceptance and verified published downloads
+before channel activation; generated URLs alone do not prove publication.
 
 ## Build automation and release gates
 
@@ -150,8 +183,9 @@ run before compilation; a dispatch from a tag must match `v<VERSION>`.
 Required secret: `UPLOADIMG_UPDATER_PRIVATE_KEY`; optional password secret:
 `UPLOADIMG_UPDATER_KEY_PASSWORD`. The signing step creates an owner-only file
 in `RUNNER_TEMP` and removes it in `finally`. With no signing secret, the step
-fails clearly; signing is not operational until the owner separately configures
-it. No secret has been provisioned or probed by this task. Repository contents
+fails clearly. The owner separately provisioned the signing secret; the beta.3
+workflow's signing and verification steps succeeded. That execution establishes
+operational signing without disclosing the secret. Repository contents
 permission is read-only; no Release/feed publication job exists.
 
 The app remains debug/ad-hoc signed with no Developer ID or notarization.

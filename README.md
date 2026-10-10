@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/versi%C3%B3n-0.1.0--beta.2-2563eb" alt="Versión 0.1.0-beta.2">
+  <img src="https://img.shields.io/badge/versi%C3%B3n-0.1.0--beta.3-2563eb" alt="Versión 0.1.0-beta.3">
   <img src="https://img.shields.io/badge/macOS-Apple%20Silicon-334155" alt="macOS Apple Silicon">
   <img src="https://img.shields.io/badge/estado-beta-64748b" alt="Beta para macOS">
 </p>
@@ -14,20 +14,27 @@ UploadIMG vive en la barra de menús de macOS. Copia una imagen, revisa
 su vista previa y decide qué hacer con ella. La detección del portapapeles es
 opcional y empieza **desactivada en cada inicio**.
 
-**La beta 0.1.0-beta.2 incorpora subidas reales** a
+**La beta 0.1.0-beta.3 incluye subidas reales** a
 `https://uploadimg.vercel.app`: revisa la imagen y pulsa **Compartir** para enviarla.
 El enlace aparece después de que el servidor confirme la publicación y caduca a las 24 horas.
 
 ## Descargar la beta
 
-[**Descargar v0.1.0-beta.2 para macOS arm64**](https://github.com/SergioGMR/uploadimg-desktop/releases/download/v0.1.0-beta.2/UploadIMG-0.1.0-beta.2-macos-arm64.dmg)
-· [Notas y SHA256SUMS](https://github.com/SergioGMR/uploadimg-desktop/releases/tag/v0.1.0-beta.2)
+[**Descargar v0.1.0-beta.3 para macOS arm64**](https://github.com/SergioGMR/uploadimg-desktop/releases/download/v0.1.0-beta.3/UploadIMG-0.1.0-beta.3-macos-arm64.dmg)
+· [Notas y SHA256SUMS](https://github.com/SergioGMR/uploadimg-desktop/releases/tag/v0.1.0-beta.3)
 
 1. Descarga el DMG y `SHA256SUMS` desde la misma Release.
-2. Comprueba el archivo: `shasum -a 256 UploadIMG-0.1.0-beta.2-macos-arm64.dmg`
+2. Comprueba el archivo: `shasum -a 256 UploadIMG-0.1.0-beta.3-macos-arm64.dmg`
    y compara el resultado con su línea en `SHA256SUMS`.
 3. Abre el DMG y arrastra **UploadIMG** a **Aplicaciones**.
 4. Abre la aplicación y usa su icono de imagen en la barra de menús.
+
+Beta.3 es la primera versión con actualizador: desde beta.1/beta.2 hay que
+instalarla manualmente. Después puede consultar el canal beta mediante
+**Buscar actualizaciones**. El manifiesto del canal apunta a beta.3; al consultar
+esa misma versión se espera el estado «Tu versión está al día». La consulta
+desde la app y la instalación de una versión posterior requieren sus propias
+pruebas; no quedan demostradas por publicar este manifiesto.
 
 El bundle debug lleva firma local ad-hoc, sin certificado de distribución Apple ni
 notarización. macOS puede bloquear su apertura; si decides continuar tras
@@ -35,13 +42,15 @@ verificar origen y checksum, usa la opción de apertura que ofrezca
 **Ajustes del Sistema → Privacidad y seguridad**.
 
 La [beta.1 histórica](https://github.com/SergioGMR/uploadimg-desktop/releases/tag/v0.1.0-beta.1)
-solo compartía enlaces simulados en `example.invalid`; sus instaladores se conservan.
+solo compartía enlaces simulados en `example.invalid`. Sus instaladores y los de
+[beta.2](https://github.com/SergioGMR/uploadimg-desktop/releases/tag/v0.1.0-beta.2)
+se conservan.
 
 ## Desarrollo local
 
-El árbol de desarrollo es **0.1.0-beta.3, sin publicar** e incorpora el trabajo
-del actualizador y sus artefactos firmados. La descarga disponible sigue siendo
-beta.2; la primera versión con actualizador se instalará manualmente.
+La versión **0.1.0-beta.3** se publicó el **10 de octubre de 2026**, con DMG y
+artefactos de actualización firmados. Sus nueve assets se descargaron por HTTPS
+sin autenticación y coincidieron con los candidatos revisados.
 Consulta [el estado y los límites de las actualizaciones](docs/automatic-updates.md).
 
 ```sh
@@ -72,9 +81,18 @@ no instala un atajo global ni captura la pantalla por su cuenta.
 
 ## Disponibilidad y desarrollo
 
-La evidencia de ejecución cubre **macOS 26.6.2 en Apple Silicon arm64**. El usuario
-probó el DMG beta.2 en su equipo y confirmó que funciona; no se ha registrado un
-desglose de casos individuales. Se distribuye el bundle debug con firma ad-hoc.
+La [CI de beta.3](https://github.com/SergioGMR/uploadimg-desktop/actions/runs/38066375725)
+pasó 137 checks y construyó los paquetes en **macOS 26.6.2 arm64**; dos pruebas
+de integración opt-in se omitieron. Las comprobaciones de los paquetes descargados
+se ejecutaron en macOS 27.0.1 arm64, incluidas firmas, checksums y `--version`.
+La confirmación GUI, el reinicio, Gatekeeper y la recuperación tras un fallo real
+de instalación siguen pendientes. Esta publicación es una beta limitada autorizada;
+no completa la matriz de actualización y recuperación.
+
+El usuario probó anteriormente el DMG beta.2 y confirmó que funciona, sin un
+desglose de casos individuales; esa evidencia no valida la GUI de beta.3.
+Se distribuye el bundle debug con firma ad-hoc. El mínimo macOS 15.4 del plist
+es metadato y no acredita soporte probado en ese sistema.
 La aplicación completa en Windows y Linux no se ha ejecutado; macOS Intel, versiones anteriores de macOS
 y detección de carpetas quedan pendientes.
 
