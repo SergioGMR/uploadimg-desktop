@@ -20,7 +20,23 @@ The manual [macOS build workflow](../.github/workflows/build-macos.yml) prepares
 
 Automatic updates use the dedicated public key and channel feed configured by Rust. The first updater-capable version requires manual installation; beta.1/beta.2 cannot update themselves. Until real signed artifacts and verified feeds are separately published, feed requests may fail visibly. [Updater behavior, transport limits and current acceptance](../docs/automatic-updates.md) describe the boundary.
 
-Only macOS 26.6.2 arm64 has build/framework test evidence. The plist API floor of 15.4 does not advertise support for that version. Rust core and platform boundaries are arranged for later Windows/Linux work; those adapters return unavailable and have not been built or tested. macOS build/package scripts require the installed Apple toolchain.
+Historical GUI evidence covers the user's beta.2 DMG check on macOS 26.6.2 arm64;
+individual GUI cases were not recorded. Current local checks on macOS 27.0.1 arm64
+passed 137 tests, an offline application build, deep/strict ad-hoc signature
+verification and the new bundle's executable `--version` check. The current GUI
+and complete updater installation flow remain NOT_RUN. The plist API floor of
+15.4 does not advertise support for that version. Rust core and platform boundaries
+are arranged for later Windows/Linux work; those adapters return unavailable and
+have not been built or tested. macOS build/package scripts require the installed
+Apple toolchain.
+
+The Linux dependency graph uses a local GLib 0.18.5 backport of the official
+`VariantStrIter` fix. An isolated Linux ARM64 release harness passed 11 regression
+cases with application-matched GLib features; this is separate from full Linux app
+compilation/runtime. With existing Linux Rust/GLib dependencies and an offline
+Cargo cache, run `bash desktop/scripts/test-glib.sh`. The harness has its own
+workspace and lock and installs nothing. See [source, license, sandbox requirements
+and advisory limits](../docs/glib-backport.md); version-based alerts may persist.
 
 ## Current behavior
 

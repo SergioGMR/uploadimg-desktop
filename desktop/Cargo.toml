@@ -2,3 +2,7 @@
 members = ["crates/core", "src-tauri"]
 default-members = ["crates/core"]
 resolver = "2"
+
+# Backport RUSTSEC-2024-0429 without migrating the GTK3/Tauri dependency stack.
+[patch.crates-io]
+glib = { path = "vendor/glib-0.18.5" }

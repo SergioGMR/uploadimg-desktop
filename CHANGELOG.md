@@ -10,6 +10,10 @@ Changes follow [Semantic Versioning 2.0.0](https://semver.org/).
 - Local macOS arm64 automatic-update integration and signed updater packaging.
 - Manual GitHub Actions build workflow producing a DMG and signed update artifacts; release publication remains a separate action.
 
+### Fixed
+
+- Vendored the official two-line GLib `VariantStrIter` backport for the Linux dependency graph, with an independent release-mode regression harness. The crate remains 0.18.5; version-based RUSTSEC-2024-0429 alerts may persist. Full Linux application runtime remains unverified.
+
 ### Availability
 
 - Local development version, not a published download. The first updater-capable version requires manual installation.

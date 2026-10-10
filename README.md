@@ -75,8 +75,12 @@ no instala un atajo global ni captura la pantalla por su cuenta.
 La evidencia de ejecución cubre **macOS 26.6.2 en Apple Silicon arm64**. El usuario
 probó el DMG beta.2 en su equipo y confirmó que funciona; no se ha registrado un
 desglose de casos individuales. Se distribuye el bundle debug con firma ad-hoc.
-Windows y Linux no se han ejecutado; macOS Intel, versiones anteriores de macOS
+La aplicación completa en Windows y Linux no se ha ejecutado; macOS Intel, versiones anteriores de macOS
 y detección de carpetas quedan pendientes.
+
+Un harness aislado de GLib en Linux ARM64 superó 11 regresiones en modo release
+con el backport local y las features de la aplicación. Esa evidencia cubre el
+iterador corregido; consulta [procedencia y límites](docs/glib-backport.md).
 
 El núcleo está escrito en Rust, la integración macOS en Swift y la interfaz local
 en HTML/CSS/JavaScript con Tauri. Consulta [la aplicación](desktop/README.md),
