@@ -2,6 +2,7 @@ import AppKit
 import UserNotifications
 import ImageIO
 import Darwin
+import CoreFoundation
 
 // Web brand image glyph: Icon.astro's 24 × 24 viewBox, stroke 1.75,
 // rounded caps/joins. Flipped coordinates preserve the SVG's top-down geometry.
@@ -55,6 +56,7 @@ final class NativeBridge: NSObject, UNUserNotificationCenterDelegate {
     private let boardFactory: () -> ImagePasteboard
     private let sendNotification: ((UNNotificationRequest) -> Void)?
     private let removeNotifications: (([String]) -> Void)?
+    private let preferences: UserDefaults
     // Control token belongs exclusively to Rust; native wake changes lifecycle only.
     private var generation: UInt64 = 0
     private var lifecycle: UInt64 = 0
@@ -71,11 +73,21 @@ final class NativeBridge: NSObject, UNUserNotificationCenterDelegate {
 
     init(boardFactory: @escaping () -> ImagePasteboard = { SystemBoard() },
          sendNotification: ((UNNotificationRequest) -> Void)? = nil,
-         removeNotifications: (([String]) -> Void)? = nil) {
+         removeNotifications: (([String]) -> Void)? = nil,
+         preferences: UserDefaults = .standard) {
         self.boardFactory = boardFactory
         self.sendNotification = sendNotification
         self.removeNotifications = removeNotifications
+        self.preferences = preferences
         super.init()
+    }
+
+    func clipboardPreference() -> Bool {
+        // bool(forKey:) also coerces numbers/strings. Only an actual stored Bool
+        // is opt-in; a missing or malformed preference leaves detection OFF.
+        guard let value = preferences.object(forKey: "clipboardIntent") as? NSNumber,
+              CFGetTypeID(value) == CFBooleanGetTypeID() else { return false }
+        return value.boolValue
     }
 
     func start(_ callback: @escaping NativeCallback) {
@@ -111,11 +123,15 @@ final class NativeBridge: NSObject, UNUserNotificationCenterDelegate {
     private func applyConfiguration(enabled: Bool, paused: Bool, generation: UInt64, userChange: Bool) {
         self.generation = generation; self.desiredClipboard = enabled; self.paused = paused
         clipboard.disable(); board = nil
-        if userChange { UserDefaults.standard.set(enabled, forKey: "clipboardIntent") }
+        if userChange { preferences.set(enabled, forKey: "clipboardIntent") }
         if enabled && !paused {
             let board = boardFactory()
             if clipboard.enable(board) { self.board = board }
-            else { desiredClipboard = false; emit(kind: 3, code: 0) }
+            else {
+                desiredClipboard = false
+                preferences.set(false, forKey: "clipboardIntent")
+                emit(kind: 3, code: 0)
+            }
         }
         updateTray()
     }
@@ -136,7 +152,7 @@ final class NativeBridge: NSObject, UNUserNotificationCenterDelegate {
         case let .image(bytes): prepare(bytes, source: source)
         case .denied:
             desiredClipboard = false; clipboard.disable(); board = nil
-            UserDefaults.standard.set(false, forKey: "clipboardIntent")
+            preferences.set(false, forKey: "clipboardIntent")
             emit(kind: 3, code: 0)
         case .tooLarge: emit(kind: 2, code: 2)
         case .unsupported: if source == 2 { emit(kind: 2, code: 3) }
@@ -302,7 +318,13 @@ func validHex(_ value: String, length: Int) -> Bool {
 
 @_cdecl("uig_start")
 public func uigStart(_ callback: @escaping NativeCallback) {
-    DispatchQueue.main.async { NativeBridge.shared.start(callback) }
+    let start = { NativeBridge.shared.start(callback) }
+    // Install the callback before the first restored configuration can emit an ACK.
+    if Thread.isMainThread { start() } else { DispatchQueue.main.sync(execute: start) }
+}
+@_cdecl("uig_clipboard_preference")
+public func uigClipboardPreference() -> Int32 {
+    NativeBridge.shared.clipboardPreference() ? 1 : 0
 }
 @_cdecl("uig_configure")
 public func uigConfigure(_ enabled: Int32, _ paused: Int32, _ generation: UInt64, _ userChange: Int32, _ revision: UInt64) {

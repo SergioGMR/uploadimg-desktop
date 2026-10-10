@@ -20,6 +20,161 @@ final class FakeBoard: ImagePasteboard {
     var imageTypes: [String]? { accesses.append("types"); return types }
     func imageData(type: String) -> Data? { accesses.append(type); return bytes }
 }
+
+func withPreferences(_ body: (UserDefaults) throws -> Void) throws {
+    let domain = "local.uploadimg.clipboard-test." + UUID().uuidString.lowercased()
+    let preferences = UserDefaults(suiteName: domain)!
+    defer { preferences.removePersistentDomain(forName: domain) }
+    try body(preferences)
+}
+
+// This subprocess only runs inside disposable bundles with a unique test ID.
+// It never starts a tray, application, timer, or the system pasteboard.
+if CommandLine.arguments.dropFirst().first == "--clipboard-preference-fixture" {
+    guard let domain = Bundle.main.bundleIdentifier,
+          domain.hasPrefix("local.uploadimg.clipboard-test."),
+          CommandLine.arguments.count == 3 else { exit(2) }
+    let bridge = NativeBridge(boardFactory: { FakeBoard() })
+    switch CommandLine.arguments[2] {
+    case "on", "off":
+        bridge.configure(enabled: CommandLine.arguments[2] == "on", paused: false,
+                         generation: 1, userChange: true, revision: 1)
+    case "read": break
+    default: exit(2)
+    }
+    print(bridge.clipboardPreference() ? "on" : "off")
+    exit(0)
+}
+
+func preferenceFixture(_ executable: URL, action: String) throws -> String {
+    let child = Process(); let output = Pipe()
+    child.executableURL = executable
+    child.arguments = ["--clipboard-preference-fixture", action]
+    child.standardOutput = output
+    try child.run()
+    child.waitUntilExit()
+    try expect(child.terminationStatus == 0, "isolated preference fixture failed")
+    return String(data: output.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)!
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+}
+
+test("clipboard intent accepts only a stored boolean and defaults OFF") {
+    try withPreferences { preferences in
+        let bridge = NativeBridge(boardFactory: { FakeBoard() }, preferences: preferences)
+        try expect(!bridge.clipboardPreference(), "fresh defaults enabled detection")
+        for invalid: Any in ["true", "1", 1, 0, Data([1]), [true], ["enabled": true]] {
+            preferences.set(invalid, forKey: "clipboardIntent")
+            try expect(!bridge.clipboardPreference(), "invalid preference was coerced to ON")
+        }
+        preferences.set(true, forKey: "clipboardIntent")
+        try expect(bridge.clipboardPreference(), "stored ON was not restored")
+        preferences.set(false, forKey: "clipboardIntent")
+        try expect(!bridge.clipboardPreference(), "explicit OFF was not restored")
+    }
+}
+test("clipboard preference survives bridge replacement, pause and explicit OFF") {
+    try withPreferences { preferences in
+        let bridge = NativeBridge(boardFactory: { FakeBoard() }, preferences: preferences)
+        bridge.configure(enabled: true, paused: false, generation: 1, userChange: true, revision: 1)
+        let restarted = NativeBridge(boardFactory: { FakeBoard() }, preferences: preferences)
+        try expect(restarted.clipboardPreference(), "new instance lost ON")
+        restarted.configure(enabled: true, paused: true, generation: 2, userChange: false, revision: 1)
+        restarted.configure(enabled: true, paused: false, generation: 3, userChange: false, revision: 2)
+        try expect(restarted.clipboardPreference(), "pause/resume changed stored intent")
+        restarted.configure(enabled: false, paused: false, generation: 4, userChange: true, revision: 3)
+        try expect(!NativeBridge(boardFactory: { FakeBoard() }, preferences: preferences).clipboardPreference(),
+                   "new instance lost explicit OFF")
+    }
+}
+test("restored ON uses a fresh baseline and restoration never overwrites intent") {
+    try withPreferences { preferences in
+        preferences.set(true, forKey: "clipboardIntent")
+        let board = FakeBoard(); board.count = 41; board.types = ["public.png"]
+        board.bytes = try SyntheticImage.make()
+        let bridge = NativeBridge(boardFactory: { board }, preferences: preferences)
+        bridge.configure(enabled: bridge.clipboardPreference(), paused: false,
+                         generation: 0, userChange: false, revision: 1)
+        bridge.poll()
+        try expect(board.accesses.contains("count"), "restored ON did not establish baseline")
+        try expect(!board.accesses.contains("types") && !board.accesses.contains("public.png"),
+                   "startup read pre-existing clipboard bytes")
+        bridge.configure(enabled: false, paused: true, generation: 1, userChange: false, revision: 2)
+        try expect(preferences.object(forKey: "clipboardIntent") as? Bool == true,
+                   "non-user configuration overwrote intent")
+    }
+}
+test("denied restored source persists OFF and stops further reads") {
+    try withPreferences { preferences in
+        preferences.set(true, forKey: "clipboardIntent")
+        let board = FakeBoard()
+        let bridge = NativeBridge(boardFactory: { board }, preferences: preferences)
+        bridge.configure(enabled: bridge.clipboardPreference(), paused: false,
+                         generation: 0, userChange: false, revision: 1)
+        board.deny = true; board.count += 1; bridge.poll()
+        try expect(preferences.object(forKey: "clipboardIntent") as? Bool == false,
+                   "denial left the stored preference ON")
+        try expect(!NativeBridge(boardFactory: { FakeBoard() }, preferences: preferences).clipboardPreference(),
+                   "denial did not persist OFF")
+        board.accesses = []; bridge.poll()
+        try expect(board.accesses.isEmpty, "denied source kept polling")
+    }
+}
+test("denial during restored enable persists OFF and stale user controls cannot overwrite it") {
+    try withPreferences { preferences in
+        preferences.set(true, forKey: "clipboardIntent")
+        let board = FakeBoard(); board.deny = true
+        let bridge = NativeBridge(boardFactory: { board }, preferences: preferences)
+        bridge.configure(enabled: bridge.clipboardPreference(), paused: false,
+                         generation: 0, userChange: false, revision: 2)
+        try expect(preferences.object(forKey: "clipboardIntent") as? Bool == false,
+                   "startup denial did not persist OFF")
+        bridge.configure(enabled: true, paused: false, generation: 1, userChange: true, revision: 1)
+        try expect(!bridge.clipboardPreference(), "stale user control overwrote persisted OFF")
+        board.accesses = []; bridge.poll()
+        try expect(board.accesses.isEmpty, "startup denial kept polling")
+    }
+}
+test("normal process restart and replacement bundles preserve ON then explicit OFF") {
+    let domain = "local.uploadimg.clipboard-test." + UUID().uuidString.lowercased()
+    let preferences = UserDefaults(suiteName: domain)!
+    let source = URL(fileURLWithPath: CommandLine.arguments[0]).standardizedFileURL
+    let root = source.deletingLastPathComponent()
+        .appendingPathComponent("clipboard-preference-validation/" + domain)
+    defer {
+        preferences.removePersistentDomain(forName: domain)
+        try? FileManager.default.removeItem(at: root)
+    }
+    func bundle(_ path: String, version: String) throws -> URL {
+        let contents = root.appendingPathComponent(path + ".app/Contents")
+        let executable = contents.appendingPathComponent("MacOS/PreferenceFixture")
+        try FileManager.default.createDirectory(at: executable.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try FileManager.default.copyItem(at: source, to: executable)
+        let plist: [String: Any] = ["CFBundleIdentifier": domain, "CFBundleExecutable": "PreferenceFixture",
+                                    "CFBundleVersion": version, "CFBundleShortVersionString": version,
+                                    "CFBundlePackageType": "APPL"]
+        try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)
+            .write(to: contents.appendingPathComponent("Info.plist"))
+        return executable
+    }
+    let old = try bundle("old/UploadIMG", version: "0.1.0")
+    let replacement = try bundle("replacement/UploadIMG", version: "0.2.0")
+    try expect(try preferenceFixture(old, action: "read") == "off", "fresh process was ON")
+    _ = try preferenceFixture(old, action: "on")
+    func awaitPreference(_ expected: String, in executable: URL) throws {
+        let deadline = Date().addingTimeInterval(5)
+        repeat {
+            if try preferenceFixture(executable, action: "read") == expected { return }
+            // Poll the OS-backed store across new processes; no synchronize/forced flush.
+            RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+        } while Date() < deadline
+        throw Failure(message: "normal restart did not restore " + expected)
+    }
+    try awaitPreference("on", in: old)
+    try awaitPreference("on", in: replacement)
+    _ = try preferenceFixture(replacement, action: "off")
+    try awaitPreference("off", in: old)
+    try awaitPreference("off", in: replacement)
+}
 test("source OFF reads nothing, baseline skips existing bytes, failed reads stop") {
     let board = FakeBoard(); let monitor = ClipboardMonitor()
     _ = monitor.poll(board); try expect(board.accesses.isEmpty, "OFF touched pasteboard")

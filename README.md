@@ -12,7 +12,7 @@
 
 UploadIMG vive en la barra de menús de macOS. Copia una imagen, revisa
 su vista previa y decide qué hacer con ella. La detección del portapapeles es
-opcional y empieza **desactivada en cada inicio**.
+opcional; en la beta publicada **0.1.0-beta.3** empieza **desactivada en cada inicio**.
 
 **La beta 0.1.0-beta.3 incluye subidas reales** a
 `https://uploadimg.vercel.app`: revisa la imagen y pulsa **Compartir** para enviarla.
@@ -52,6 +52,13 @@ La versión **0.1.0-beta.3** se publicó el **10 de octubre de 2026**, con DMG y
 artefactos de actualización firmados. Sus nueve assets se descargaron por HTTPS
 sin autenticación y coincidieron con los candidatos revisados.
 Consulta [el estado y los límites de las actualizaciones](docs/automatic-updates.md).
+
+El código en desarrollo, pendiente de una nueva publicación, recuerda la elección
+de **Detectar imágenes copiadas** en las preferencias locales de macOS. La primera
+ejecución empieza desactivada; activar o desactivar se conserva al reiniciar.
+Pausar es temporal y no cambia esa elección. Al restaurar la detección solo se
+admiten imágenes nuevas; las imágenes, vistas previas y enlaces no se guardan localmente.
+Una lectura denegada o no disponible desactiva también la preferencia.
 
 ```sh
 bash desktop/scripts/test.sh

@@ -101,6 +101,15 @@ pub struct Model {
     upload: Option<ActiveUpload>,
 }
 impl Model {
+    pub fn with_clipboard_preference(native_available: bool, enabled: bool) -> Self {
+        let mut model = Self::new(native_available);
+        if native_available && enabled {
+            model.core.set_clipboard_enabled(true);
+            model.status = "Detección de imágenes restaurada. Solo se detectarán imágenes nuevas; Compartir sigue siendo explícito.".into();
+        }
+        model
+    }
+
     pub fn new(native_available: bool) -> Self {
         Self { delivery_revision: 0, updating: false, core: Core::default(), generation: 0, lifecycle: 0, previews: HashMap::new(), selected_candidate: None,
             selected_result: None, notifications: if native_available { "not_requested" } else { "unavailable" }.into(),

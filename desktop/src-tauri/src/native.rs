@@ -38,6 +38,7 @@ mod macos {
     );
     extern "C" {
         fn uig_start(callback: Callback);
+        fn uig_clipboard_preference() -> i32;
         fn uig_configure(
             enabled: i32,
             paused: i32,
@@ -140,6 +141,9 @@ mod macos {
     }
     pub fn start() {
         unsafe { uig_start(receive) }
+    }
+    pub fn clipboard_preference() -> bool {
+        unsafe { uig_clipboard_preference() == 1 }
     }
     pub fn configure(
         enabled: bool,
@@ -298,6 +302,9 @@ mod unavailable {
         Err(())
     }
     pub fn start() {}
+    pub fn clipboard_preference() -> bool {
+        false
+    }
     pub fn configure(_: bool, _: bool, _: u64, _: bool, _: u64) {}
     pub fn generate() {}
     pub fn paste() {}

@@ -14,6 +14,23 @@ struct Runtime {
     started: u64,
 }
 impl Runtime {
+    fn new(native_available: bool, clipboard_preference: bool, started: u64) -> Self {
+        Self {
+            model: Mutex::new(Model::with_clipboard_preference(
+                native_available,
+                clipboard_preference,
+            )),
+            started,
+        }
+    }
+    fn startup_batch(&self) -> Result<EffectBatch, String> {
+        let mut model = self
+            .model
+            .lock()
+            .map_err(|_| "Estado local no disponible.".to_string())?;
+        let configuration = model.configure(false);
+        Ok(model.effect_batch(vec![configuration]))
+    }
     fn now(&self) -> u64 {
         native::monotonic_millis().saturating_sub(self.started)
     }
@@ -24,6 +41,29 @@ impl Runtime {
             .map_err(|_| "Estado local no disponible.".to_string())?;
         Ok(model.snapshot(self.now()))
     }
+}
+
+#[cfg(test)]
+#[test]
+fn startup_runtime_exposes_restored_ui_and_non_persisting_native_configuration() {
+    let runtime = Runtime::new(true, true, native::monotonic_millis());
+    let state = serde_json::to_value(runtime.snapshot().unwrap()).unwrap();
+    assert_eq!(state["clipboardEnabled"], true);
+    assert_eq!(state["paused"], false);
+    let batch = runtime.startup_batch().unwrap();
+    assert!(matches!(
+        batch.operations.as_slice(),
+        [Operation::Configure {
+            enabled: true,
+            user_change: false,
+            paused: false,
+            generation: 0
+        }]
+    ));
+    assert!(
+        runtime.model.try_lock().is_ok(),
+        "startup effects retained model lock"
+    );
 }
 
 // All native/main-thread work executes AFTER releasing Rust state/queue locks.
@@ -247,10 +287,11 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(updater::UpdaterState::new())
-        .manage(Runtime {
-            model: Mutex::new(Model::new(native::available())),
-            started: native::monotonic_millis(),
-        })
+        .manage(Runtime::new(
+            native::available(),
+            native::clipboard_preference(),
+            native::monotonic_millis(),
+        ))
         .invoke_handler(tauri::generate_handler![
             get_state,
             generate_synthetic,
@@ -268,6 +309,8 @@ fn main() {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
             native::start();
+            let batch = app.state::<Runtime>().startup_batch()?;
+            execute(app.handle(), batch);
             let startup_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 let _ = updater::check(startup_handle).await;

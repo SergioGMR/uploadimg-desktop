@@ -1,5 +1,83 @@
 use super::*;
 use crate::events::{Event, ImageEvent};
+
+#[test]
+fn startup_restores_clipboard_in_ui_and_native_configuration_without_user_change() {
+    let mut model = Model::with_clipboard_preference(true, true);
+    let state = model.snapshot(0);
+    assert!(state.clipboard_enabled, "startup UI lost stored ON");
+    assert!(!state.paused);
+    assert!(state.pending.is_empty() && state.results.is_empty());
+    assert!(
+        !state.status.contains("apagado"),
+        "startup status contradicts stored ON"
+    );
+    let configuration = model.configure(false);
+    let batch = model.effect_batch(vec![configuration]);
+    assert_eq!(batch.revision, 1);
+    assert!(matches!(
+        batch.operations.as_slice(),
+        [Operation::Configure {
+            enabled: true,
+            paused: false,
+            generation: 0,
+            user_change: false
+        }]
+    ));
+}
+
+#[test]
+fn startup_off_and_unavailable_platform_never_enable_native_reads() {
+    for (native, stored) in [(true, false), (false, true), (false, false)] {
+        let mut model = Model::with_clipboard_preference(native, stored);
+        assert!(!model.snapshot(0).clipboard_enabled);
+        assert!(matches!(
+            model.configure(false),
+            Operation::Configure {
+                enabled: false,
+                user_change: false,
+                ..
+            }
+        ));
+    }
+}
+
+#[test]
+fn restored_clipboard_pause_preserves_intent_and_denial_requests_persisted_off() {
+    let mut model = Model::with_clipboard_preference(true, true);
+    for paused in [true, false] {
+        let operations = model.set_paused(paused, 1);
+        assert!(model.snapshot(1).clipboard_enabled);
+        assert!(matches!(
+            operations.first(),
+            Some(Operation::Configure {
+                enabled: true,
+                user_change: false,
+                ..
+            })
+        ));
+    }
+    let operations = model.apply_event(
+        Event::Control {
+            kind: 3,
+            code: 0,
+            generation: model.generation,
+            lifecycle: 0,
+            text: String::new(),
+        },
+        2,
+    );
+    assert!(!model.snapshot(2).clipboard_enabled);
+    assert!(matches!(
+        operations.first(),
+        Some(Operation::Configure {
+            enabled: false,
+            user_change: true,
+            ..
+        })
+    ));
+}
+
 fn image(generation: u64, source: i32) -> Event {
     let mut thumbnail = b"\x89PNG\r\n\x1a\n\0\0\0\rIHDR".to_vec();
     thumbnail.extend(2u32.to_be_bytes());
