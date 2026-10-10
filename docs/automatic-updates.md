@@ -8,11 +8,26 @@ The beta channel manifest points to beta.3; a same-version in-app check is
 expected to report up to date, but that live check remains separate evidence.
 
 A historical headless macOS test performed real replacement of a disposable
-beta.3 bundle with a signed beta.4 fixture. Beta.4 is not a release. GUI update
-confirmation, automatic restart, Gatekeeper and recovery after an actual
+beta.3 bundle with a signed beta.4 fixture. That historical fixture is separate
+from the prepared **0.1.0-beta.4** candidate; neither establishes its publication.
+GUI update confirmation, automatic restart, Gatekeeper and recovery after an actual
 filesystem installation failure remain **NOT_RUN**. This authorized beta.3
 rollout is a limited exception, not acceptance of the full update/recovery/
 restart matrix or a change to the general release gate.
+
+Exact-source CI, independent source/artifact review and public-download
+verification remain pending for the beta.4 candidate. The published beta channel
+still targets beta.3; no beta.4 feed activation or actual GUI updater result is
+established by this preparation. See [the release procedure](releasing.md) for
+the candidate's delivery gate.
+
+The beta.4 candidate retains the stable bundle identifier and updater public key.
+It restores only the macOS boolean `clipboardIntent` from the existing
+`UserDefaults` domain after normal restart or app replacement. Fresh or invalid
+preferences default OFF; an earlier stored choice is preserved. Pause is
+temporary and restoration takes a fresh clipboard baseline without admitting
+old content. Images, previews, links and upload recovery remain in memory;
+asynchronous preference writes do not promise abrupt-termination durability.
 
 ## Application and safety boundary
 

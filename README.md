@@ -53,12 +53,19 @@ artefactos de actualización firmados. Sus nueve assets se descargaron por HTTPS
 sin autenticación y coincidieron con los candidatos revisados.
 Consulta [el estado y los límites de las actualizaciones](docs/automatic-updates.md).
 
-El código en desarrollo, pendiente de una nueva publicación, recuerda la elección
+El candidato **0.1.0-beta.4**, preparado y pendiente de publicación, recuerda la elección
 de **Detectar imágenes copiadas** en las preferencias locales de macOS. La primera
 ejecución empieza desactivada; activar o desactivar se conserva al reiniciar.
 Pausar es temporal y no cambia esa elección. Al restaurar la detección solo se
 admiten imágenes nuevas; las imágenes, vistas previas y enlaces no se guardan localmente.
-Una lectura denegada o no disponible desactiva también la preferencia.
+Una lectura denegada o no disponible desactiva también la preferencia. Se guarda
+solo el booleano de detección en `UserDefaults`, conservando una elección anterior
+y el mismo dominio al sustituir la app con el mismo identificador.
+
+La GUI, la actualización y el reinicio, Gatekeeper y la recuperación ante un
+fallo real de instalación siguen pendientes para este candidato.
+La revisión y las comprobaciones del código final, artefactos y descargas siguen
+siendo necesarias. La descarga y el canal publicados arriba siguen en beta.3.
 
 ```sh
 bash desktop/scripts/test.sh

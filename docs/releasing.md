@@ -1,8 +1,10 @@
 # Release verified macOS artifacts
 
 The published version is **0.1.0-beta.3**, bundle build **3**, released on
-2026-10-10. Preserve beta.1/beta.2 tags and installers. Install beta.3 manually
-when upgrading from those versions: it is the first updater-capable release.
+2026-10-10. The prepared candidate is **0.1.0-beta.4**, bundle build **4**;
+it is not yet published. Preserve beta.1/beta.2/beta.3 tags and installers.
+When beta.4 is published, install it manually when upgrading from beta.1/beta.2,
+which do not contain an updater. Beta.3 was the first updater-capable release.
 Commits, pushes, tags, secrets/settings changes, workflow execution, Releases
 and feed publication need explicit authorization in the delivery task.
 
@@ -21,6 +23,14 @@ restart, real filesystem-failure recovery and Gatekeeper checks remain pending.
 This is a beta.3-only exception to the complete update/recovery acceptance gate
 in step 4.6 below; it neither marks that matrix passed nor relaxes future gates.
 See [the release evidence](automatic-updates.md#beta3-release-evidence).
+
+The owner separately requested a limited beta.4 publication after the pending
+graphical update/restart, Gatekeeper and real filesystem-failure recovery checks
+were communicated. This beta.4-specific exception to the complete matrix in
+step 4.6 does not mark it passed or apply to future releases. Exact-source CI,
+independent source/artifact review and public-download verification remain
+required; no beta.4 release, feed change or final-source runtime is established
+by preparing these documents.
 
 ## 1. Review and check exact sources
 
@@ -103,7 +113,8 @@ Tauri `MockRuntime` and HTTPS localhost with an explicit test CA. Both bundle
 executables reported their versions; permissions/native library/public key/plist
 were checked. Bad signatures and signed-version mismatch left the old bundle
 unchanged. The separate crypto helper accepted a valid archive and rejected
-altered bytes, wrong key and version mismatch. Beta.4 is a local fixture only.
+altered bytes, wrong key and version mismatch. That historical beta.4 fixture is
+separate from the new beta.4 candidate and does not verify its runtime.
 See [the precise evidence boundary](automatic-updates.md#verified-local-boundary).
 
 Observe the exact version's startup, tray, preview, explicit sharing and opt-in

@@ -3,6 +3,20 @@
 Changes follow [Semantic Versioning 2.0.0](https://semver.org/).
 `VERSION` identifies the distribution; application manifests hold its numeric base.
 
+## [0.1.0-beta.4] - Prepared
+
+### Changed
+
+- macOS remembers explicit clipboard detection ON/OFF across normal restarts and application replacement with the same bundle identifier, using the existing `UserDefaults` preference domain. A fresh or invalid preference starts OFF; an earlier stored choice is preserved.
+- Pause remains temporary and does not change that preference. Restored detection establishes a fresh baseline and does not admit old clipboard content; denied or unavailable reads persist OFF.
+- Only the boolean `clipboardIntent` is stored. Images, previews, links and upload recovery remain in memory.
+
+### Availability
+
+- Prepared macOS arm64 candidate, short version 0.1.0 and bundle build 4; publication and exact-source CI/artifact/download checks are pending.
+- GUI updates, automatic restart, Gatekeeper and recovery after a real filesystem installation failure remain unverified for this candidate.
+- Debug bundle with Apple ad-hoc signing; no Developer ID or notarization. Windows/Linux, Intel and other macOS versions remain unverified.
+
 ## [0.1.0-beta.3] - 2026-10-10
 
 ### Added
