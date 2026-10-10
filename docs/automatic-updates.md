@@ -1,27 +1,25 @@
 # Automatic updates for macOS arm64
 
-**Published beta: 0.1.0-beta.3, released on 2026-10-10.** The exact-source
+**Published beta: 0.1.0-beta.4, released on 2026-10-10 UTC.** The exact-source
 macOS build workflow succeeded, the release was independently reviewed and all
-nine published assets were downloaded anonymously and verified. Install beta.3
+nine published assets were downloaded anonymously and verified. Install beta.4
 manually when upgrading from beta.1/beta.2, which do not contain an updater.
-The beta channel manifest points to beta.3; a same-version in-app check is
-expected to report up to date, but that live check remains separate evidence.
+Beta.3 was the first updater-capable release. From beta.3, use
+**Buscar actualizaciones** and confirm the offered installation
+after resolving pending images/uploads. The repository manifest is the exact
+beta.4 Release manifest. Remote endpoint verification is a delivery gate distinct
+from live in-app GUI checks; neither is established by the repository copy alone.
 
 A historical headless macOS test performed real replacement of a disposable
 beta.3 bundle with a signed beta.4 fixture. That historical fixture is separate
-from the prepared **0.1.0-beta.4** candidate; neither establishes its publication.
+from the exact beta.4 release-artifact test described below.
 GUI update confirmation, automatic restart, Gatekeeper and recovery after an actual
-filesystem installation failure remain **NOT_RUN**. This authorized beta.3
-rollout is a limited exception, not acceptance of the full update/recovery/
-restart matrix or a change to the general release gate.
+filesystem installation failure, and preferences through the GUI, remain **NOT_RUN**.
+The exact beta.4 headless replacement and public download checks passed without
+completing that GUI/recovery matrix. See [the release procedure](releasing.md)
+for the version-specific limited rollout and future delivery gate.
 
-Exact-source CI, independent source/artifact review and public-download
-verification remain pending for the beta.4 candidate. The published beta channel
-still targets beta.3; no beta.4 feed activation or actual GUI updater result is
-established by this preparation. See [the release procedure](releasing.md) for
-the candidate's delivery gate.
-
-The beta.4 candidate retains the stable bundle identifier and updater public key.
+Beta.4 retains the stable bundle identifier and updater public key.
 It restores only the macOS boolean `clipboardIntent` from the existing
 `UserDefaults` domain after normal restart or app replacement. Fresh or invalid
 preferences default OFF; an earlier stored choice is preserved. Pause is
@@ -81,6 +79,47 @@ Gatekeeper, a downloaded public Release, or recovery after an actual filesystem
 replacement failure. It did not modify the owner's installed application or
 publish beta.4. Those historical fixture receipts are separate from the
 reviewed beta.3 source/artifact and public-download receipts below.
+
+## Beta.4 release evidence
+
+The [beta.4 Release](https://github.com/SergioGMR/uploadimg-desktop/releases/tag/v0.1.0-beta.4)
+was published at 2026-10-10 23:11:22 UTC from source
+`1faedbca1cdc90669d2ebaafffbeaf770989fd3c`, bundle build 4. Its
+[exact-source build run](https://github.com/SergioGMR/uploadimg-desktop/actions/runs/38091832082)
+passed 147 checks on macOS 26.6.2 arm64: 72 Rust, 23 Swift, 29 Node,
+15 packaging and 8 version. Two opt-in integration tests were skipped in CI.
+The source, nine artifacts and release notes received independent review.
+
+A separate official-updater headless test used Tauri `MockRuntime`, localhost
+HTTPS and an explicit test CA to replace a disposable copy of published beta.3
+with the exact signed beta.4 CI archive. Download, signature verification and
+filesystem replacement were real; GUI/tray were simulated. Installed bundle
+bytes and modes matched the verified CI bundle and strict signing checks passed.
+An altered signature and signed-version mismatch were rejected without changing
+the previous executable or plist. The server stopped, resources were cleaned
+and no DMG mount remained. The owner's installed app was not used.
+Receipts are under `desktop/.build/updater-runtime/release-beta4-20261010T222915Z/`
+and `desktop/.build/release-beta4/control/validation-final-receipt.json`.
+This evidence is distinct from the historical beta.4 fixture above.
+
+All nine published assets were downloaded anonymously over HTTPS and matched
+the accepted CI artifacts byte for byte. Checks were repeated on the public
+copies: both checksum manifests, exact source/provenance, matching DMG/updater
+bundle bytes/modes, version-bound updater signature, deep/strict Apple signatures,
+DMG integrity/read-only mounting and exact-device eject, packaged notes and the
+bundled executable's beta.4 `--version`. Headless replacement was not repeated
+because public archive/signature bytes were identical to the tested CI artifacts.
+Receipts are `desktop/.build/release-beta4/public-download-receipt.json` and
+`desktop/.build/release-beta4/control/public-verification/verification.json`.
+
+| Artifact | SHA256 |
+| --- | --- |
+| `UploadIMG-0.1.0-beta.4-macos-arm64.dmg` | `2b39cb490915fdcee82f7d30b38bf4190266fec4dfd4e5299df4bef66bdda02e` |
+| `UploadIMG-0.1.0-beta.4-macos-arm64.app.tar.gz` | `6c4e244f780f9087df623de5f5726694cc10b80b2e7a415e0981ab638ae65ca2` |
+
+GUI confirmation, restart, preferences through the GUI, Gatekeeper and actual
+filesystem-failure recovery remain unverified. The documentation/feed commit
+does not change the published source tag or packages, and is not a new build.
 
 ## Beta.3 release evidence
 
@@ -175,12 +214,15 @@ cargo run --offline --locked --jobs 2 --manifest-path desktop/Cargo.toml \
 ```
 
 `updates/beta.json` is a byte-for-byte copy of the verified manifest downloaded
-from the beta.3 Release. Its production endpoint is
+from the beta.4 Release. Its production endpoint is
 `https://raw.githubusercontent.com/SergioGMR/uploadimg-desktop/main/updates/beta.json`;
-it contains only `platforms.darwin-aarch64` and the exact published beta.3 archive
-URL/signature. Feed commit/push, raw-endpoint verification and the live in-app
-query require separate delivery checks; copying the manifest does not establish
-them. `updates/stable.json` remains absent until a stable release meets its gate.
+it contains only `platforms.darwin-aarch64` and the exact published beta.4 archive
+URL/signature contents. This repository copy has SHA256
+`c997a396c411de6d830188d029cc51d04feb5cb71208b0eaa33b308faee82d9d`.
+Channel activation requires a reviewed commit/push and raw-endpoint verification.
+That gate is separate from a live in-app GUI query; copying this verified manifest
+does not establish either result. `updates/stable.json` remains absent until a
+stable release meets its gate.
 Beta does not use `releases/latest`, which excludes prereleases. Future candidate
 manifests still need independent acceptance and verified published downloads
 before channel activation; generated URLs alone do not prove publication.

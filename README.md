@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/versi%C3%B3n-0.1.0--beta.3-2563eb" alt="Versión 0.1.0-beta.3">
+  <img src="https://img.shields.io/badge/versi%C3%B3n-0.1.0--beta.4-2563eb" alt="Versión 0.1.0-beta.4">
   <img src="https://img.shields.io/badge/macOS-Apple%20Silicon-334155" alt="macOS Apple Silicon">
   <img src="https://img.shields.io/badge/estado-beta-64748b" alt="Beta para macOS">
 </p>
@@ -12,29 +12,29 @@
 
 UploadIMG vive en la barra de menús de macOS. Copia una imagen, revisa
 su vista previa y decide qué hacer con ella. La detección del portapapeles es
-opcional; en la beta publicada **0.1.0-beta.3** empieza **desactivada en cada inicio**.
+opcional; la beta publicada **0.1.0-beta.4** recuerda tu elección de activarla o
+desactivarla. Una instalación nueva empieza con la detección **desactivada**.
 
-**La beta 0.1.0-beta.3 incluye subidas reales** a
+**La beta 0.1.0-beta.4 incluye subidas reales** a
 `https://uploadimg.vercel.app`: revisa la imagen y pulsa **Compartir** para enviarla.
 El enlace aparece después de que el servidor confirme la publicación y caduca a las 24 horas.
 
 ## Descargar la beta
 
-[**Descargar v0.1.0-beta.3 para macOS arm64**](https://github.com/SergioGMR/uploadimg-desktop/releases/download/v0.1.0-beta.3/UploadIMG-0.1.0-beta.3-macos-arm64.dmg)
-· [Notas y SHA256SUMS](https://github.com/SergioGMR/uploadimg-desktop/releases/tag/v0.1.0-beta.3)
+[**Descargar v0.1.0-beta.4 para macOS arm64**](https://github.com/SergioGMR/uploadimg-desktop/releases/download/v0.1.0-beta.4/UploadIMG-0.1.0-beta.4-macos-arm64.dmg)
+· [Notas y SHA256SUMS](https://github.com/SergioGMR/uploadimg-desktop/releases/tag/v0.1.0-beta.4)
 
 1. Descarga el DMG y `SHA256SUMS` desde la misma Release.
-2. Comprueba el archivo: `shasum -a 256 UploadIMG-0.1.0-beta.3-macos-arm64.dmg`
+2. Comprueba el archivo: `shasum -a 256 UploadIMG-0.1.0-beta.4-macos-arm64.dmg`
    y compara el resultado con su línea en `SHA256SUMS`.
 3. Abre el DMG y arrastra **UploadIMG** a **Aplicaciones**.
 4. Abre la aplicación y usa su icono de imagen en la barra de menús.
 
-Beta.3 es la primera versión con actualizador: desde beta.1/beta.2 hay que
-instalarla manualmente. Después puede consultar el canal beta mediante
-**Buscar actualizaciones**. El manifiesto del canal apunta a beta.3; al consultar
-esa misma versión se espera el estado «Tu versión está al día». La consulta
-desde la app y la instalación de una versión posterior requieren sus propias
-pruebas; no quedan demostradas por publicar este manifiesto.
+Beta.3 fue la primera versión con actualizador: desde beta.1/beta.2 hay que
+instalar beta.4 manualmente. Desde beta.3, usa
+**Buscar actualizaciones** y confirma la instalación ofrecida. Finaliza o descarta
+las imágenes y subidas pendientes antes de instalar. Consulta
+[el estado y los límites de las actualizaciones](docs/automatic-updates.md).
 
 El bundle debug lleva firma local ad-hoc, sin certificado de distribución Apple ni
 notarización. macOS puede bloquear su apertura; si decides continuar tras
@@ -44,28 +44,29 @@ verificar origen y checksum, usa la opción de apertura que ofrezca
 La [beta.1 histórica](https://github.com/SergioGMR/uploadimg-desktop/releases/tag/v0.1.0-beta.1)
 solo compartía enlaces simulados en `example.invalid`. Sus instaladores y los de
 [beta.2](https://github.com/SergioGMR/uploadimg-desktop/releases/tag/v0.1.0-beta.2)
-se conservan.
+se conservan, junto con la
+[beta.3](https://github.com/SergioGMR/uploadimg-desktop/releases/tag/v0.1.0-beta.3),
+que iniciaba la detección desactivada en cada proceso.
 
 ## Desarrollo local
 
-La versión **0.1.0-beta.3** se publicó el **10 de octubre de 2026**, con DMG y
+La versión **0.1.0-beta.4** se publicó el **10 de octubre de 2026 (UTC)**, con DMG y
 artefactos de actualización firmados. Sus nueve assets se descargaron por HTTPS
 sin autenticación y coincidieron con los candidatos revisados.
 Consulta [el estado y los límites de las actualizaciones](docs/automatic-updates.md).
 
-El candidato **0.1.0-beta.4**, preparado y pendiente de publicación, recuerda la elección
-de **Detectar imágenes copiadas** en las preferencias locales de macOS. La primera
-ejecución empieza desactivada; activar o desactivar se conserva al reiniciar.
+La beta **0.1.0-beta.4** recuerda la elección
+de **Detectar imágenes copiadas** en las preferencias locales de macOS. Sin una
+preferencia anterior empieza desactivada; activar o desactivar se conserva al reiniciar.
 Pausar es temporal y no cambia esa elección. Al restaurar la detección solo se
 admiten imágenes nuevas; las imágenes, vistas previas y enlaces no se guardan localmente.
 Una lectura denegada o no disponible desactiva también la preferencia. Se guarda
 solo el booleano de detección en `UserDefaults`, conservando una elección anterior
 y el mismo dominio al sustituir la app con el mismo identificador.
 
-La GUI, la actualización y el reinicio, Gatekeeper y la recuperación ante un
-fallo real de instalación siguen pendientes para este candidato.
-La revisión y las comprobaciones del código final, artefactos y descargas siguen
-siendo necesarias. La descarga y el canal publicados arriba siguen en beta.3.
+La confirmación gráfica de actualización, el reinicio automático, las preferencias
+en GUI, Gatekeeper y la recuperación ante un fallo real de instalación siguen
+pendientes. El reemplazo headless y la integridad de las descargas no validan esos casos.
 
 ```sh
 bash desktop/scripts/test.sh
@@ -95,16 +96,17 @@ no instala un atajo global ni captura la pantalla por su cuenta.
 
 ## Disponibilidad y desarrollo
 
-La [CI de beta.3](https://github.com/SergioGMR/uploadimg-desktop/actions/runs/38066375725)
-pasó 137 checks y construyó los paquetes en **macOS 26.6.2 arm64**; dos pruebas
-de integración opt-in se omitieron. Las comprobaciones de los paquetes descargados
-se ejecutaron en macOS 27.0.1 arm64, incluidas firmas, checksums y `--version`.
-La confirmación GUI, el reinicio, Gatekeeper y la recuperación tras un fallo real
-de instalación siguen pendientes. Esta publicación es una beta limitada autorizada;
-no completa la matriz de actualización y recuperación.
+La [CI de beta.4](https://github.com/SergioGMR/uploadimg-desktop/actions/runs/38091832082)
+pasó 147 checks y construyó los paquetes en **macOS 26.6.2 arm64**; dos pruebas
+de integración opt-in se omitieron. Se verificaron los nueve artefactos, firmas,
+checksums, procedencia, montaje del DMG y `--version`. Una prueba headless separada
+reemplazó realmente una copia desechable de la beta.3 publicada por el bundle exacto
+de CI de beta.4; rechazó firma alterada y versión incompatible conservando la app
+anterior. Las nueve descargas públicas anónimas coincidieron byte por byte con los
+artefactos aceptados. Esta beta limitada no completa la matriz de GUI y recuperación.
 
 El usuario probó anteriormente el DMG beta.2 y confirmó que funciona, sin un
-desglose de casos individuales; esa evidencia no valida la GUI de beta.3.
+desglose de casos individuales; esa evidencia no valida la GUI de beta.4.
 Se distribuye el bundle debug con firma ad-hoc. El mínimo macOS 15.4 del plist
 es metadato y no acredita soporte probado en ese sistema.
 La aplicación completa en Windows y Linux no se ha ejecutado; macOS Intel, versiones anteriores de macOS

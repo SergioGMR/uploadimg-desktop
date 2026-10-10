@@ -3,7 +3,7 @@
 Changes follow [Semantic Versioning 2.0.0](https://semver.org/).
 `VERSION` identifies the distribution; application manifests hold its numeric base.
 
-## [0.1.0-beta.4] - Prepared
+## [0.1.0-beta.4] - 2026-10-10
 
 ### Changed
 
@@ -13,8 +13,10 @@ Changes follow [Semantic Versioning 2.0.0](https://semver.org/).
 
 ### Availability
 
-- Prepared macOS arm64 candidate, short version 0.1.0 and bundle build 4; publication and exact-source CI/artifact/download checks are pending.
-- GUI updates, automatic restart, Gatekeeper and recovery after a real filesystem installation failure remain unverified for this candidate.
+- Published macOS arm64 beta, short version 0.1.0 and bundle build 4, from source `1faedbca1cdc90669d2ebaafffbeaf770989fd3c` on 2026-10-10 UTC. Exact-source CI passed 147 checks on macOS 26.6.2 arm64; two opt-in integration tests were skipped.
+- Nine reviewed artifacts passed signature/checksum/provenance/package checks; anonymous public downloads matched every accepted artifact byte for byte.
+- A separate headless test replaced a disposable copy of published beta.3 with the exact beta.4 CI bundle and rejected an altered signature and signed-version mismatch without changing the old app. This is distinct from the earlier beta.4 fixture experiment.
+- GUI updates, automatic restart, preferences through the GUI, Gatekeeper and recovery after a real filesystem installation failure remain unverified.
 - Debug bundle with Apple ad-hoc signing; no Developer ID or notarization. Windows/Linux, Intel and other macOS versions remain unverified.
 
 ## [0.1.0-beta.3] - 2026-10-10

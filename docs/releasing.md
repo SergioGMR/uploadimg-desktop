@@ -1,17 +1,18 @@
 # Release verified macOS artifacts
 
-The published version is **0.1.0-beta.3**, bundle build **3**, released on
-2026-10-10. The prepared candidate is **0.1.0-beta.4**, bundle build **4**;
-it is not yet published. Preserve beta.1/beta.2/beta.3 tags and installers.
-When beta.4 is published, install it manually when upgrading from beta.1/beta.2,
+The published version is **0.1.0-beta.4**, bundle build **4**, released on
+2026-10-10 at 23:11:22 UTC from source `1faedbca1cdc90669d2ebaafffbeaf770989fd3c`.
+Preserve every published tag and installer, including beta.1/beta.2/beta.3.
+Install beta.4 manually when upgrading from beta.1/beta.2,
 which do not contain an updater. Beta.3 was the first updater-capable release.
+From beta.3, use **Buscar actualizaciones** and confirm the offered installation.
 Commits, pushes, tags, secrets/settings changes, workflow execution, Releases
 and feed publication need explicit authorization in the delivery task.
 
 The user reported that the beta.2 DMG works, without an individual GUI case
 record. That evidence applies to installer SHA256
 `1a811ad7459ae9d69f923693052228812e2a11b2684c455d558620a1956e203b`,
-not to beta.3. Packaging, runtime, CI and download checks remain separate.
+not to beta.3 or beta.4. Packaging, runtime, CI and download checks remain separate.
 
 The [beta.3 Release](https://github.com/SergioGMR/uploadimg-desktop/releases/tag/v0.1.0-beta.3)
 uses source `085264549565eb1c40261cfd959fcaa3f1c644c4` and the successful
@@ -28,9 +29,20 @@ The owner separately requested a limited beta.4 publication after the pending
 graphical update/restart, Gatekeeper and real filesystem-failure recovery checks
 were communicated. This beta.4-specific exception to the complete matrix in
 step 4.6 does not mark it passed or apply to future releases. Exact-source CI,
-independent source/artifact review and public-download verification remain
-required; no beta.4 release, feed change or final-source runtime is established
-by preparing these documents.
+independent source/artifact review and public-download verification have now
+passed. The [beta.4 build](https://github.com/SergioGMR/uploadimg-desktop/actions/runs/38091832082)
+ran 147 checks on macOS 26.6.2 arm64, with two opt-in integrations skipped.
+A separate headless test replaced disposable published beta.3 with the exact
+beta.4 CI bundle and verified negative signature/version cases. All nine public
+assets matched CI byte for byte and passed package/signature checks again.
+See [beta.4 release evidence](automatic-updates.md#beta4-release-evidence).
+
+This post-publication documentation/feed change keeps the release source,
+tag and installers fixed at `1faedbca1cdc90669d2ebaafffbeaf770989fd3c`.
+`updates/beta.json` is the exact manifest downloaded from the beta.4 Release;
+channel activation requires a separately reviewed commit/push and remote endpoint
+verification, distinct from GUI acceptance. No rebuild or asset replacement is
+part of channel activation.
 
 ## 1. Review and check exact sources
 
@@ -114,17 +126,23 @@ executables reported their versions; permissions/native library/public key/plist
 were checked. Bad signatures and signed-version mismatch left the old bundle
 unchanged. The separate crypto helper accepted a valid archive and rejected
 altered bytes, wrong key and version mismatch. That historical beta.4 fixture is
-separate from the new beta.4 candidate and does not verify its runtime.
+separate from the published beta.4 artifacts. A new headless test replaced a
+disposable copy of published beta.3 with the exact beta.4 CI bundle, verified
+preserved bytes/modes and rejected altered signature/signed-version mismatch.
+The historical fixture result does not prove those artifacts.
 See [the precise evidence boundary](automatic-updates.md#verified-local-boundary).
 
 Observe the exact version's startup, tray, preview, explicit sharing and opt-in
 detection using synthetic data. GUI/update confirmation, actual restart,
 Gatekeeper and recovery after a real filesystem installation failure remain
-NOT_RUN; verify them on a disposable installation. Keep cancellation/busy-state
-regressions and the headless replacement result distinct from graphical runtime.
+NOT_RUN, as do preferences through the GUI; verify them on a disposable installation.
+Keep cancellation/busy-state regressions and the headless replacement result
+distinct from graphical runtime.
 Do not use the owner's installed app as the experiment. Network/upload, CI and
-public download verification also remain separate evidence. Rebuild and package
-the final reviewed source after documentation changes so receipts match it.
+public download verification also remain separate evidence. Before publication,
+rebuild and package the final reviewed source after packaged documentation changes
+so receipts match it. Post-release documentation must identify the original tag;
+never rebuild beta.4 to replace its published assets. Corrections require a new version.
 
 The [manual macOS arm64 workflow](../.github/workflows/build-macos.yml) fetches
 locked dependencies, runs checks and builds the custom bundle using Rust
