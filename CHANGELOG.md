@@ -3,11 +3,11 @@
 Changes follow [Semantic Versioning 2.0.0](https://semver.org/).
 `VERSION` identifies the distribution; application manifests hold its numeric base.
 
-## [0.1.0-beta.3] - Unreleased
+## [0.1.0-beta.3] - 2026-10-10
 
 ### Added
 
-- Local macOS arm64 automatic-update integration and signed updater packaging.
+- macOS arm64 automatic-update integration and signed updater packaging.
 - Manual GitHub Actions build workflow producing a DMG and signed update artifacts; release publication remains a separate action.
 
 ### Fixed
@@ -16,9 +16,11 @@ Changes follow [Semantic Versioning 2.0.0](https://semver.org/).
 
 ### Availability
 
-- Local development version, not a published download. The first updater-capable version requires manual installation.
+- First updater-capable macOS arm64 beta. Install it manually when upgrading from beta.1/beta.2, which do not contain an updater.
+- Local pre-release checks passed 137 macOS regressions and 11 isolated Linux GLib regressions; the latter do not verify the complete Linux application.
 - A headless macOS harness verified real signed beta.3→beta.4 replacement of a disposable bundle and signature/version rejection; beta.4 is a local fixture only.
-- GUI updates, automatic restart, Gatekeeper, recovery after a real filesystem failure, workflow execution and release/feed publication remain unverified.
+- GUI updates, automatic restart, Gatekeeper and recovery after a real filesystem failure remain unverified.
+- The final source build, CI execution, release/feed publication and public downloads require their own release receipts; the local checks above do not establish those results.
 - Debug bundle with Apple ad-hoc signing; updater archive signing is separate. No Developer ID or notarization; Windows/Linux are unverified.
 
 ## [0.1.0-beta.2]

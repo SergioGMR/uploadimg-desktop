@@ -1,6 +1,6 @@
-# UploadIMG 0.1.0-beta.3 — local, unreleased
+# UploadIMG 0.1.0-beta.3
 
-This development candidate adds macOS arm64 automatic-update integration
+This beta adds macOS arm64 automatic-update integration
 and signed updater artifact tooling. The first updater-capable version must
 be manually installed: published beta.1/beta.2 do not contain an updater.
 No release or channel feed publication is established by these notes.
@@ -16,7 +16,14 @@ Clipboard detection starts OFF. Sharing remains explicit and sends to
 Candidates, result history and recovery capabilities are in memory and lost
 on restart. Updates must block installation while images/uploads/unresolved
 recovery remain, and restart requires confirmation. Feed failures remain
-visible until real signed releases and channel manifests are published.
+visible and can be retried through **Buscar actualizaciones**.
+
+Local pre-release evidence records 137 passing macOS regressions and 11
+isolated Linux GLib regressions. A headless macOS harness performed real
+signed beta.3→beta.4 replacement of a disposable bundle and rejected invalid
+signatures and a signed-version mismatch. Beta.4 is a local fixture only;
+this result does not verify graphical confirmation, restart or recovery
+after an actual filesystem installation failure.
 
 `SHA256SUMS` covers this DMG and its `provenance.json`. DMG packaging checks
 cover metadata/icon/arm64/dependencies/ad-hoc signatures, UDZO integrity,
