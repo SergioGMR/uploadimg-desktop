@@ -69,6 +69,19 @@ el reinicio automático, las preferencias mediante GUI, Gatekeeper y la recupera
 ante un fallo real de instalación siguen pendientes. Los checks de empaquetado y
 el reemplazo headless no validan esos casos.
 
+El candidato **0.1.0-beta.5**, preparado y pendiente de publicación, deja de
+ofrecer para compartir los archivos y carpetas copiados en el Finder (que también
+copian su icono como imagen) y adopta GPL-3.0-only con `LICENSE`, `COPYRIGHT` y
+`THIRD-PARTY-NOTICES` incluidos en la app. La Release incluirá como asset el
+archivo de código fuente de la etiqueta (Código Fuente Correspondiente); las
+dependencias se obtienen de crates.io según `desktop/Cargo.lock`. El propietario
+informó el 2026-11-01 de que probó las actualizaciones y funcionan; es evidencia
+declarada por él, no una comprobación observada de forma independiente. La CI del
+código final, la revisión de artefactos y la verificación de descargas siguen
+pendientes, así como la GUI de actualización y reinicio, Gatekeeper y la
+recuperación ante un fallo real de instalación. La descarga y el canal publicados
+arriba siguen en beta.4.
+
 macOS Intel, otras versiones de macOS y la aplicación completa en Windows/Linux
 siguen sin verificar. El mínimo macOS 15.4 del plist es metadato, no soporte probado.
 Consulta [los detalles técnicos y los límites de validación](desktop/README.md)

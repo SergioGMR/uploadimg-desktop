@@ -2,7 +2,8 @@
 
 The published version is **0.1.0-beta.4**, bundle build **4**, released on
 2026-10-10 at 23:11:22 UTC from source `1faedbca1cdc90669d2ebaafffbeaf770989fd3c`.
-Preserve every published tag and installer, including beta.1/beta.2/beta.3.
+The prepared candidate is **0.1.0-beta.5**, bundle build **5**; it is not yet
+published. Preserve every published tag and installer, including beta.1 through beta.4.
 Install beta.4 manually when upgrading from beta.1/beta.2,
 which do not contain an updater. Beta.3 was the first updater-capable release.
 From beta.3, use **Buscar actualizaciones** and confirm the offered installation.
@@ -37,7 +38,17 @@ beta.4 CI bundle and verified negative signature/version cases. All nine public
 assets matched CI byte for byte and passed package/signature checks again.
 See [beta.4 release evidence](automatic-updates.md#beta4-release-evidence).
 
-This post-publication documentation/feed change keeps the release source,
+The owner reported on 2026-11-01 that they tested updates and they work. That is
+owner-reported device evidence, not an independently observed check. On the same
+day the owner approved a beta.5-only exception to the complete matrix in step 4.6
+for a limited publication. It neither marks that matrix passed nor applies to future
+releases: independently observed graphical update/restart, Gatekeeper and real
+filesystem-failure recovery remain NOT_RUN.
+Exact-source CI, independent source/artifact review, the source archive and
+public-download verification are still required; preparing these documents establishes
+no beta.5 release, feed change or final-source runtime.
+
+Beta.4's post-publication documentation/feed change keeps the release source,
 tag and installers fixed at `1faedbca1cdc90669d2ebaafffbeaf770989fd3c`.
 `updates/beta.json` is the exact manifest downloaded from the beta.4 Release;
 channel activation requires a separately reviewed commit/push and remote endpoint
@@ -202,6 +213,18 @@ Configuration/schema checks do not establish executed CI or app runtime.
    without asset clobber. Keep the distinct DMG `provenance.json`/`SHA256SUMS`
    and updater `updater-provenance.json`/`UPDATER-SHA256SUMS` names, with each
    artifact's associated source receipt.
+   Also create the Corresponding Source archive from the exact tag and upload it
+   with the other assets, without clobber:
+
+   ```sh
+   VERSION="$(cat VERSION)"
+   git archive --format=tar.gz --prefix="uploadimg-desktop-$VERSION/" \
+     -o "UploadIMG-$VERSION-source.tar.gz" "v$VERSION"
+   shasum -a 256 "UploadIMG-$VERSION-source.tar.gz"
+   ```
+
+   Record that checksum with the other asset checksums in the Release notes and
+   verify, after publication, that the downloaded archive is byte-identical.
 4. Include full version, source/artifact identity, debug/ad-hoc status, absent
    notarization and actual device/runtime/CI checks. Review then publish only
    within the explicitly authorized delivery task.

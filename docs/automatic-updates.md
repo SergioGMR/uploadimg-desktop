@@ -19,6 +19,17 @@ The exact beta.4 headless replacement and public download checks passed without
 completing that GUI/recovery matrix. See [the release procedure](releasing.md)
 for the version-specific limited rollout and future delivery gate.
 
+The prepared **0.1.0-beta.5** candidate (bundle build 5) is not published. Exact-source
+CI, independent source/artifact review and public-download verification remain
+pending; the published beta channel still targets beta.4, and no beta.5 feed
+activation or GUI updater result is established by this preparation. The owner
+reported on 2026-11-01 that they tested updates and they work. That is
+owner-reported device evidence, not an independently observed check; it does not identify the exact steps or cases
+and does not complete the matrix: GUI update confirmation, automatic restart, Gatekeeper and
+recovery after an actual filesystem installation failure remain **NOT_RUN** for
+this candidate. See [the release procedure](releasing.md) for its delivery gate.
+Beta.5 changes no updater runtime code, public key, bundle identifier or preference storage; its packaging only adds the legal resources.
+
 Beta.4 retains the stable bundle identifier and updater public key.
 It restores only the macOS boolean `clipboardIntent` from the existing
 `UserDefaults` domain after normal restart or app replacement. Fresh or invalid

@@ -3,7 +3,7 @@
 Changes follow [Semantic Versioning 2.0.0](https://semver.org/).
 `VERSION` identifies the distribution; application manifests hold its numeric base.
 
-## [Unreleased]
+## [0.1.0-beta.5] - Prepared
 
 ### Changed
 
@@ -15,6 +15,13 @@ Changes follow [Semantic Versioning 2.0.0](https://semver.org/).
 ### Fixed
 
 - macOS clipboard detection and **Pegar imagen** no longer offer to share a file or folder copied in Finder. Finder adds the item's icon as PNG/TIFF/JPEG next to its file reference; a file reference together with Finder's icon type (`com.apple.icns`) is now unsupported, so image files copied in Finder are not shared through their icon either. App image copies that also carry a file reference remain supported.
+
+### Availability
+
+- Prepared macOS arm64 candidate, short version 0.1.0 and bundle build 5; publication and exact-source CI/artifact/download checks are pending. The Release is to attach the tag source archive (Corresponding Source) with the binaries.
+- The owner reported on 2026-11-01 that they tested updates and they work. This is owner-reported device evidence, not an independently observed check, and does not identify the exact steps or cases.
+- Otherwise GUI updates, automatic restart, Gatekeeper and recovery after a real filesystem installation failure remain unverified (NOT_RUN) for this candidate.
+- Debug bundle with Apple ad-hoc signing; no Developer ID or notarization. Windows/Linux, Intel and other macOS versions remain unverified.
 
 ## [0.1.0-beta.4] - 2026-10-10
 
