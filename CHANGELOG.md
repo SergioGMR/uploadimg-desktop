@@ -3,6 +3,15 @@
 Changes follow [Semantic Versioning 2.0.0](https://semver.org/).
 `VERSION` identifies the distribution; application manifests hold its numeric base.
 
+## [Unreleased]
+
+### Changed
+
+- Original project material is licensed under GPL-3.0-only; the root `LICENSE` and `COPYRIGHT` state the terms and copyright, and the first-party Cargo packages declare the license. The vendored GLib keeps its MIT license and notices.
+- `LICENSE`, `COPYRIGHT` and a generated `THIRD-PARTY-NOTICES` (Rust dependencies of the macOS application, with the license texts shipped in each crate) are bundled in `Contents/Resources` and validated against the source by the build receipt, DMG capture/comparison and updater packaging. `desktop/scripts/test.sh` checks that the committed notices match `Cargo.lock`.
+- The release procedure now states what Corresponding Source means for a Release: the tag source archive attached to the Release, with dependency sources pinned by `Cargo.lock` checksums on crates.io. It does not claim an exhaustive license audit.
+- Previously published beta.3 and beta.4 assets are unchanged.
+
 ## [0.1.0-beta.4] - 2026-10-10
 
 ### Changed

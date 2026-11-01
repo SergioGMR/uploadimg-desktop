@@ -18,6 +18,17 @@ Build creates a manual local `.app` with a native Swift dylib, signs the native 
 
 The build invalidates the previous source receipt, recreates the known app output and writes `desktop/.build/build-source.json` only after successful compilation/signature checks and unchanged before/after source snapshots. Signed updater packaging requires that receipt to match the current source, full VERSION and every bundled file, mode and internal symlink. Dirty sources retain their exact digest and dirty status; they are not assigned a clean compiled commit. See [release packaging](../docs/releasing.md).
 
+New builds copy the root [LICENSE](../LICENSE), [COPYRIGHT](../COPYRIGHT) and
+[THIRD-PARTY-NOTICES](../THIRD-PARTY-NOTICES) unchanged into `Contents/Resources`
+before Apple signing. Build receipts, DMG capture/comparison and updater archives
+reject missing or changed legal texts. The original project material uses
+**GPL-3.0-only**; third-party components retain their own licenses. THIRD-PARTY-NOTICES
+is generated from `cargo metadata` for the macOS dependency graph with
+`python3 desktop/scripts/third-party-notices.py generate`, and `scripts/test.sh`
+fails if the committed file is out of date. The vendored GLib keeps its MIT notices
+in the source tree. This source and packaging change does not replace or modify
+previously published beta.4 assets.
+
 The manual [macOS build workflow](../.github/workflows/build-macos.yml) prepares checks, this custom debug bundle, the DMG and a signed updater archive for review. It needs named updater secrets, uploads workflow artifacts and has only read-only repository contents permission. Beta.4 [run 38091832082](https://github.com/SergioGMR/uploadimg-desktop/actions/runs/38091832082) succeeded on the exact release source on macOS 26.6.2 arm64: 147 checks passed (72 Rust, 23 Swift, 29 Node, 15 packaging, 8 version); two opt-in integration tests were skipped. Historical beta.3 [run 38066375725](https://github.com/SergioGMR/uploadimg-desktop/actions/runs/38066375725) passed 137 checks. No Windows/Linux job or release/feed publication job is configured.
 
 The [beta.4 Release](https://github.com/SergioGMR/uploadimg-desktop/releases/tag/v0.1.0-beta.4) contains nine independently reviewed assets. Checks covered checksum manifests, provenance, matching package contents/modes, Apple signatures, the version-bound updater signature, read-only DMG mounting and executable `--version`. Anonymous HTTPS downloads then matched every accepted artifact byte for byte; package, signature and executable checks were repeated on those public copies. This limited beta does not complete the GUI/recovery/restart matrix. Historical [beta.3 evidence](../docs/automatic-updates.md#beta3-release-evidence) is preserved separately.

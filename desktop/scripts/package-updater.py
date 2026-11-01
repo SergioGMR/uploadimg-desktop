@@ -28,6 +28,7 @@ def guard_output(base, output):
 
 
 def validate_build_receipt(receipt, root, app, version):
+    packaging.validate_legal_resources(app, root)
     if (receipt.get('schema') != 1 or receipt.get('version') != version
             or receipt.get('source') != packaging.source_snapshot(root)
             or receipt.get('bundle') != packaging.bundle_entries(app)):
@@ -35,6 +36,7 @@ def validate_build_receipt(receipt, root, app, version):
 
 
 def create_archive(app, archive):
+    packaging.validate_legal_resources(app, REPO)
     packaging.bundle_entries(app)  # Reject unsafe links before archive creation.
     with archive.open('xb') as output, tarfile.open(fileobj=output, mode='w:gz') as target:
         target.add(app, arcname='UploadIMG.app', recursive=False)
@@ -45,6 +47,7 @@ def create_archive(app, archive):
 
 
 def verify_archive(archive, app, destination):
+    packaging.validate_legal_resources(app, REPO)
     expected = {'UploadIMG.app', *('UploadIMG.app/' + name for name in packaging.bundle_entries(app))}
     with tarfile.open(archive, 'r:gz') as source:
         members = source.getmembers()
@@ -77,6 +80,7 @@ def verify_archive(archive, app, destination):
                 (destination / member.name).chmod(member.mode)
     if packaging.bundle_entries(destination / 'UploadIMG.app') != packaging.bundle_entries(app):
         raise ValueError('Extracted updater archive changed bytes, permissions or symlinks')
+    packaging.validate_legal_resources(destination / 'UploadIMG.app', REPO)
 
 
 def decode_lines(value):
@@ -150,6 +154,7 @@ def build_finish(start, app, output):
     before = json.loads(start.read_text())
     if before['source'] != packaging.source_snapshot(REPO) or before['version'] != packaging.versions.check(REPO):
         raise ValueError('Source changed during the build; no verified build receipt produced')
+    packaging.validate_legal_resources(app, REPO)
     packaging.write_json(output, {'schema': 1, **before, 'bundle': packaging.bundle_entries(app),
                                   'profile': 'debug', 'apple_signing': 'ad-hoc', 'notarized': False,
                                   'build_command': 'cargo build --offline --locked --jobs 2 -p uploadimg-desktop',

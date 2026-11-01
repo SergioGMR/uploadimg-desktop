@@ -9,3 +9,5 @@ bash "$ROOT/scripts/test-native.sh"
 node --test "$ROOT"/ui/tests/*.test.mjs
 python3 "$ROOT/scripts/tests/test-package-manifest.py"
 python3 "$ROOT/scripts/tests/test-updater-package.py"
+python3 "$ROOT/scripts/tests/test-third-party-notices.py"
+python3 "$ROOT/scripts/third-party-notices.py" --check

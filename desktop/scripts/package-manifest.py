@@ -18,6 +18,18 @@ spec.loader.exec_module(versions)
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
+LEGAL_RESOURCES = ['LICENSE', 'COPYRIGHT', 'THIRD-PARTY-NOTICES']
+
+def validate_legal_resources(app, root):
+    for name in LEGAL_RESOURCES:
+        source = root / name
+        resource = app / 'Contents/Resources' / name
+        for path in [source, resource]:
+            if not path.is_file() or path.is_symlink():
+                raise ValueError(f'Missing regular legal text: {path}')
+        if resource.read_bytes() != source.read_bytes():
+            raise ValueError(f'Bundle legal text differs from current source: {name}')
+
 def write_json(path, data):
     with path.open('x') as target:
         json.dump(data, target, sort_keys=True, indent=2)
@@ -120,6 +132,7 @@ def main():
         print(attachment(plistlib.loads(Path(args[0]).read_bytes()), Path(args[1])))
     elif command == 'capture':
         app, manifest = map(Path, args[:2])
+        validate_legal_resources(app, REPO)
         version = versions.check(REPO)
         info = plistlib.loads((app / 'Contents/Info.plist').read_bytes())
         validate_info(info, plistlib.loads((root / 'src-tauri/Info.plist').read_bytes()), version)
@@ -135,6 +148,8 @@ def main():
         baseline = json.loads(manifest.read_text())
         if source_snapshot(REPO) != baseline['source_at_packaging']:
             raise ValueError('Source changed during packaging')
+        validate_legal_resources(app, REPO)
+        validate_legal_resources(mount / 'UploadIMG.app', REPO)
         if bundle_entries(app) != baseline['bundle'] or bundle_entries(mount / 'UploadIMG.app') != baseline['bundle']:
             raise ValueError('Source bundle changed or mounted bundle differs')
         link = mount / 'Applications'

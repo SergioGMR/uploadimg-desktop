@@ -8,65 +8,79 @@
   <img src="https://img.shields.io/badge/estado-beta-64748b" alt="Beta para macOS">
 </p>
 
-# Tu siguiente imagen, a un clic
+# UploadIMG Desktop
 
-UploadIMG vive en la barra de menús de macOS. Copia una imagen, revisa
-su vista previa y decide qué hacer con ella. La detección del portapapeles es
-opcional; la beta publicada **0.1.0-beta.4** recuerda tu elección de activarla o
-desactivarla. Una instalación nueva empieza con la detección **desactivada**.
+Copia una imagen, revisa su vista previa y compártela desde la barra de menús de
+macOS. UploadIMG solo sube una imagen cuando pulsas **Compartir**: la beta
+**0.1.0-beta.4** usa `https://uploadimg.vercel.app` y muestra el enlace cuando el
+servidor confirma la publicación. Los enlaces caducan a las 24 horas.
 
-**La beta 0.1.0-beta.4 incluye subidas reales** a
-`https://uploadimg.vercel.app`: revisa la imagen y pulsa **Compartir** para enviarla.
-El enlace aparece después de que el servidor confirme la publicación y caduca a las 24 horas.
+## Descargar e instalar
 
-## Descargar la beta
-
-[**Descargar v0.1.0-beta.4 para macOS arm64**](https://github.com/SergioGMR/uploadimg-desktop/releases/download/v0.1.0-beta.4/UploadIMG-0.1.0-beta.4-macos-arm64.dmg)
+[**Descargar v0.1.0-beta.4 para macOS Apple Silicon**](https://github.com/SergioGMR/uploadimg-desktop/releases/download/v0.1.0-beta.4/UploadIMG-0.1.0-beta.4-macos-arm64.dmg)
 · [Notas y SHA256SUMS](https://github.com/SergioGMR/uploadimg-desktop/releases/tag/v0.1.0-beta.4)
 
-1. Descarga el DMG y `SHA256SUMS` desde la misma Release.
-2. Comprueba el archivo: `shasum -a 256 UploadIMG-0.1.0-beta.4-macos-arm64.dmg`
-   y compara el resultado con su línea en `SHA256SUMS`.
-3. Abre el DMG y arrastra **UploadIMG** a **Aplicaciones**.
-4. Abre la aplicación y usa su icono de imagen en la barra de menús.
+1. Descarga el DMG y `SHA256SUMS` desde la misma Release. Ejecuta
+   `shasum -a 256 UploadIMG-0.1.0-beta.4-macos-arm64.dmg` y compara el resultado.
+2. Abre el DMG y arrastra **UploadIMG** a **Aplicaciones**.
+3. Cierra cualquier versión anterior, abre UploadIMG y usa su icono en la barra de menús.
 
-Beta.3 fue la primera versión con actualizador: desde beta.1/beta.2 hay que
-instalar beta.4 manualmente. Desde beta.3, usa
-**Buscar actualizaciones** y confirma la instalación ofrecida. Finaliza o descarta
-las imágenes y subidas pendientes antes de instalar. Consulta
-[el estado y los límites de las actualizaciones](docs/automatic-updates.md).
+El bundle debug tiene firma local ad-hoc, sin certificado de distribución Apple
+ni notarización. Si macOS bloquea la apertura, tras verificar origen y checksum
+puedes usar la opción que ofrezca **Ajustes del Sistema → Privacidad y seguridad**.
 
-El bundle debug lleva firma local ad-hoc, sin certificado de distribución Apple ni
-notarización. macOS puede bloquear su apertura; si decides continuar tras
-verificar origen y checksum, usa la opción de apertura que ofrezca
-**Ajustes del Sistema → Privacidad y seguridad**.
+Desde beta.1/beta.2, instala beta.4 manualmente. Desde beta.3 puedes usar
+**Buscar actualizaciones** y confirmar la instalación; antes finaliza o descarta
+las imágenes y subidas pendientes. Consulta los
+[límites y la evidencia del actualizador](docs/automatic-updates.md).
 
+## Uso
+
+| Acción | Resultado |
+| --- | --- |
+| **Pegar imagen** | Selecciona una imagen del portapapeles mediante una acción explícita. |
+| **Detectar imágenes copiadas** | Admite nuevas imágenes copiadas y muestra su vista previa. |
+| **Compartir** | Sube la imagen seleccionada y obtiene su enlace. |
+| **Ignorar** | Descarta la candidata. |
+| **Generar imagen sintética** | Prueba el flujo con una imagen de demostración. |
+| **Pausar / Salir** | Detiene temporalmente la detección o cierra la aplicación. |
+
+La detección empieza **desactivada** en una instalación nueva. Beta.4 recuerda
+la elección de activarla o desactivarla en las preferencias locales de macOS;
+pausar es temporal. Al restaurar la detección solo admite imágenes nuevas. Si
+una lectura se deniega o no está disponible, la detección queda desactivada.
+
+El atajo de macOS **Control + Command + Shift + 4** copia una captura al
+portapapeles. UploadIMG no instala un atajo global ni captura la pantalla por su
+cuenta. Cerrar la ventana mantiene el proceso en la barra de menús; usa
+**Abrir UploadIMG** para volver a ella.
+
+Solo se persiste el booleano de detección en `UserDefaults`. Imágenes, vistas
+previas, enlaces e información para reintentar subidas viven en memoria y se
+pierden al cerrar el proceso. Las imágenes publicadas permanecen en el servidor
+hasta su caducidad. La detección de carpetas todavía no está disponible.
+
+## Estado de la beta
+
+La distribución disponible es para **macOS Apple Silicon**. La CI de beta.4
+construyó y comprobó los paquetes en macOS 26.6.2 arm64; las descargas públicas
+coincidieron con los artefactos revisados. La confirmación gráfica de actualización,
+el reinicio automático, las preferencias mediante GUI, Gatekeeper y la recuperación
+ante un fallo real de instalación siguen pendientes. Los checks de empaquetado y
+el reemplazo headless no validan esos casos.
+
+macOS Intel, otras versiones de macOS y la aplicación completa en Windows/Linux
+siguen sin verificar. El mínimo macOS 15.4 del plist es metadato, no soporte probado.
+Consulta [los detalles técnicos y los límites de validación](desktop/README.md)
+y [la evidencia de beta.4](docs/automatic-updates.md#beta4-release-evidence).
 La [beta.1 histórica](https://github.com/SergioGMR/uploadimg-desktop/releases/tag/v0.1.0-beta.1)
-solo compartía enlaces simulados en `example.invalid`. Sus instaladores y los de
-[beta.2](https://github.com/SergioGMR/uploadimg-desktop/releases/tag/v0.1.0-beta.2)
-se conservan, junto con la
-[beta.3](https://github.com/SergioGMR/uploadimg-desktop/releases/tag/v0.1.0-beta.3),
-que iniciaba la detección desactivada en cada proceso.
+solo compartía enlaces simulados en `example.invalid`; beta.4 realiza subidas reales.
 
-## Desarrollo local
+## Desarrollo y contribuciones
 
-La versión **0.1.0-beta.4** se publicó el **10 de octubre de 2026 (UTC)**, con DMG y
-artefactos de actualización firmados. Sus nueve assets se descargaron por HTTPS
-sin autenticación y coincidieron con los candidatos revisados.
-Consulta [el estado y los límites de las actualizaciones](docs/automatic-updates.md).
-
-La beta **0.1.0-beta.4** recuerda la elección
-de **Detectar imágenes copiadas** en las preferencias locales de macOS. Sin una
-preferencia anterior empieza desactivada; activar o desactivar se conserva al reiniciar.
-Pausar es temporal y no cambia esa elección. Al restaurar la detección solo se
-admiten imágenes nuevas; las imágenes, vistas previas y enlaces no se guardan localmente.
-Una lectura denegada o no disponible desactiva también la preferencia. Se guarda
-solo el booleano de detección en `UserDefaults`, conservando una elección anterior
-y el mismo dominio al sustituir la app con el mismo identificador.
-
-La confirmación gráfica de actualización, el reinicio automático, las preferencias
-en GUI, Gatekeeper y la recuperación ante un fallo real de instalación siguen
-pendientes. El reemplazo headless y la integridad de las descargas no validan esos casos.
+El núcleo está escrito en Rust, la integración macOS en Swift y la interfaz local
+en HTML/CSS/JavaScript con Tauri. Desde la raíz del repositorio, con el toolchain
+y las dependencias descritos en [la guía de desarrollo](desktop/README.md):
 
 ```sh
 bash desktop/scripts/test.sh
@@ -74,55 +88,31 @@ bash desktop/scripts/build.sh
 open "desktop/.build/UploadIMG.app"
 ```
 
-La app se instala como **UploadIMG**, con un icono propio basado en la web.
-El identificador de la aplicación se conserva. Cierra la versión anterior antes de
-abrir o instalar UploadIMG para evitar dos procesos a la vez.
-
-## Del portapapeles a la vista previa
-
-| Acción | Qué ocurre |
-| --- | --- |
-| Generar imagen sintética | Prueba el flujo con una imagen de demostración. |
-| Activar detección | Admite nuevas imágenes copiadas y muestra su vista previa. |
-| `Control + Command + Shift + 4` | El atajo de macOS copia una captura al portapapeles. |
-| Pegar imagen | Admite una imagen mediante una acción explícita. |
-| Ignorar / Compartir | Descarta la candidata o sube la imagen al servicio. |
-| Pausar / Salir | Detiene la detección temporalmente o cierra la aplicación. |
-
-Cerrar la ventana mantiene el proceso en la barra de menús. Las imágenes y los
-resultados y capacidades de recuperación viven en memoria; se descartan al terminar
-el proceso. Las imágenes ya publicadas permanecen en el servidor hasta su caducidad. La aplicación
-no instala un atajo global ni captura la pantalla por su cuenta.
-
-## Disponibilidad y desarrollo
-
-La [CI de beta.4](https://github.com/SergioGMR/uploadimg-desktop/actions/runs/38091832082)
-pasó 147 checks y construyó los paquetes en **macOS 26.6.2 arm64**; dos pruebas
-de integración opt-in se omitieron. Se verificaron los nueve artefactos, firmas,
-checksums, procedencia, montaje del DMG y `--version`. Una prueba headless separada
-reemplazó realmente una copia desechable de la beta.3 publicada por el bundle exacto
-de CI de beta.4; rechazó firma alterada y versión incompatible conservando la app
-anterior. Las nueve descargas públicas anónimas coincidieron byte por byte con los
-artefactos aceptados. Esta beta limitada no completa la matriz de GUI y recuperación.
-
-El usuario probó anteriormente el DMG beta.2 y confirmó que funciona, sin un
-desglose de casos individuales; esa evidencia no valida la GUI de beta.4.
-Se distribuye el bundle debug con firma ad-hoc. El mínimo macOS 15.4 del plist
-es metadato y no acredita soporte probado en ese sistema.
-La aplicación completa en Windows y Linux no se ha ejecutado; macOS Intel, versiones anteriores de macOS
-y detección de carpetas quedan pendientes.
-
-Un harness aislado de GLib en Linux ARM64 superó 11 regresiones en modo release
-con el backport local y las features de la aplicación. Esa evidencia cubre el
-iterador corregido; consulta [procedencia y límites](docs/glib-backport.md).
-
-El núcleo está escrito en Rust, la integración macOS en Swift y la interfaz local
-en HTML/CSS/JavaScript con Tauri. Consulta [la aplicación](desktop/README.md),
-[cómo contribuir](CONTRIBUTING.md) y [cómo publicar una versión](docs/releasing.md).
+Consulta [cómo contribuir](CONTRIBUTING.md),
+[la publicación de versiones](docs/releasing.md) y
+[la procedencia del backport GLib](docs/glib-backport.md).
 Los documentos de arquitectura/API en `docs/` incluyen propuestas todavía sin implementar.
+Para errores o propuestas, [abre una issue](https://github.com/SergioGMR/uploadimg-desktop/issues/new/choose).
 
-[Comunica un error o una propuesta](https://github.com/SergioGMR/uploadimg-desktop/issues/new/choose).
-Al iniciar trabajo se revisan las issues relacionadas; no hay vigilancia automática.
+## Autoría y licencia
 
-El código fuente es público. **No se ha elegido una licencia**: su publicación
-no concede por sí sola permisos de uso, modificación o redistribución.
+Proyecto de [SergioGMR](https://github.com/SergioGMR).
+Copyright © 2026 SergioGMR. El material original del proyecto se distribuye bajo
+**GNU GPL versión 3 únicamente**
+([GPL-3.0-only](https://spdx.org/licenses/GPL-3.0-only.html)); consulta
+[LICENSE](LICENSE) y [COPYRIGHT](COPYRIGHT).
+
+Puedes usarlo, estudiarlo, modificarlo y crear forks, también para uso comercial
+o venta. Al redistribuirlo, conserva los avisos de autoría y licencia. Si distribuyes
+una versión modificada cubierta por la GPL, indica los cambios y sus fechas,
+licénciala bajo GPL-3.0-only y proporciona a sus receptores el **Código Fuente
+Correspondiente** conforme a la licencia. Los cambios privados no requieren
+publicación; la GPL no impone la obligación de fuente por el mero uso a través de una red.
+Se ofrece sin garantía, según los términos de la licencia.
+
+Los componentes de terceros conservan sus propias licencias y avisos; los de las
+dependencias de Rust para macOS están en [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES), que
+se incluye en las compilaciones nuevas (a partir de 0.1.0-beta.5; las versiones ya
+publicadas no cambian). En particular, el GLib vendorizado mantiene su
+[licencia MIT](desktop/vendor/glib-0.18.5/LICENSE)
+y [COPYRIGHT original](desktop/vendor/glib-0.18.5/COPYRIGHT).

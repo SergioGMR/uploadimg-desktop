@@ -18,6 +18,7 @@ cp "$CARGO_TARGET_DIR/debug/uploadimg-desktop" "$APP/Contents/MacOS/UploadimgDes
 cp "$ROOT/.build/native/libUploadimgNative.dylib" "$APP/Contents/Frameworks/libUploadimgNative.dylib"
 cp "$ROOT/src-tauri/Info.plist" "$APP/Contents/Info.plist"
 cp "$ROOT/src-tauri/icons/icon.icns" "$APP/Contents/Resources/icon.icns"
+cp "$ROOT/../LICENSE" "$ROOT/../COPYRIGHT" "$ROOT/../THIRD-PARTY-NOTICES" "$APP/Contents/Resources/"
 plutil -lint "$APP/Contents/Info.plist"
 codesign --force --sign - --identifier local.uploadimg.desktop.m1.native "$APP/Contents/Frameworks/libUploadimgNative.dylib"
 codesign --force --sign - --identifier local.uploadimg.desktop.m1 "$APP"

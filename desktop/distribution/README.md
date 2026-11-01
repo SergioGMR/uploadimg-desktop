@@ -39,3 +39,16 @@ test replaced disposable published beta.3 with the exact beta.4 CI bundle and
 verified signature/version rejection. That does not prove GUI runtime.
 The plist minimum 15.4 is
 metadata; Intel, Windows/Linux and other macOS versions remain unverified.
+
+## License and source
+
+Original UploadIMG Desktop material is licensed under GNU GPL version 3 only
+(GPL-3.0-only), without warranty. New builds include the full LICENSE, the project
+COPYRIGHT and THIRD-PARTY-NOTICES (licenses of the Rust dependencies) unchanged in
+UploadIMG.app/Contents/Resources; DMG and updater checks verify those resources.
+Third-party components retain their own licenses and copyright notices,
+including the vendored GLib MIT files in the source tree.
+Recipients of new binary distributions must also receive access to the exact
+Corresponding Source under the GPL; the release procedure requires it alongside
+the binaries. These new notices do not replace the already published beta.4
+packages or their tagged installation notes.

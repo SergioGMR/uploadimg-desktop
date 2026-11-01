@@ -71,6 +71,39 @@ build receipt, not a substitute for independent review or reproducible-build
 proof. A dirty build retains its exact source digest; its compiled commit is
 null. Further source or bundle changes invalidate updater packaging.
 
+### License and Corresponding Source
+
+Original project material is licensed under **GPL-3.0-only**; see
+[LICENSE](../LICENSE), [COPYRIGHT](../COPYRIGHT) and
+[contribution terms](../CONTRIBUTING.md#license-and-attribution).
+`build.sh` copies the root legal texts ([LICENSE](../LICENSE), [COPYRIGHT](../COPYRIGHT)
+and [THIRD-PARTY-NOTICES](../THIRD-PARTY-NOTICES)) unchanged into `Contents/Resources`
+before signing. Build-finish, DMG capture/comparison and updater packaging verify
+them against the current source; a receipt cannot substitute for their presence.
+Confirm all three files remain byte-identical in the mounted DMG and extracted updater
+candidate. THIRD-PARTY-NOTICES is generated from `cargo metadata` (offline, `Cargo.lock`,
+`aarch64-apple-darwin`) by `python3 desktop/scripts/third-party-notices.py generate`;
+`desktop/scripts/test.sh` runs the generator with `--check`, so a dependency change
+requires regenerating and committing it. Previously published beta.4 tags and assets
+remain unchanged; these new resources apply to subsequent builds, not replacement beta.4
+installers.
+
+For every new binary distribution, provide recipients the exact **Corresponding
+Source**. For a Release, that is the source archive of the release tag (`git archive`
+of `v<VERSION>`) attached to the same Release as the binaries, giving equivalent access
+as described in GPL section 6(d); a link to a changing branch or a source digest alone
+is insufficient. Dependency sources are not copied into the repository: they are
+pinned by the `Cargo.lock` checksums on crates.io, and THIRD-PARTY-NOTICES lists the
+exact versions of the crates it covers. The Release notes, next to the binary downloads,
+must state clearly that the tag source archive is attached and that dependency sources
+are obtained from crates.io as pinned by `Cargo.lock` (`cargo fetch --locked` in
+`desktop/`). Verify that the attached archive corresponds to the reviewed artifact, that
+it can be downloaded and that the notes say so. Retain copyright/license notices and
+prominent modification notices with relevant dates. Preserve third-party notices such as GLib's upstream MIT
+[LICENSE](../desktop/vendor/glib-0.18.5/LICENSE) and
+[COPYRIGHT](../desktop/vendor/glib-0.18.5/COPYRIGHT). This procedure does not claim
+that an exhaustive dependency-license audit has been completed.
+
 ## 2. Package manual and signed updater candidates
 
 ```sh
