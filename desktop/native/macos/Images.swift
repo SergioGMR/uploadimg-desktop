@@ -112,6 +112,9 @@ final class ClipboardMonitor {
     func explicitPaste(_ board: ImagePasteboard) -> ClipboardObservation {
         guard !board.denied else { return .denied }
         guard let types = board.imageTypes else { return .denied }
+        // Finder file/folder copies pair the file URL with icon renditions, not image content.
+        // Apps may add a file URL to real image content, so require Finder's icon type too.
+        guard !(types.contains("public.file-url") && types.contains("com.apple.icns")) else { return .unsupported }
         guard let type = ["public.png", "public.tiff", "public.jpeg"].first(where: { types.contains($0) }) else {
             return .unsupported
         }

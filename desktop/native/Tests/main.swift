@@ -185,12 +185,34 @@ test("source OFF reads nothing, baseline skips existing bytes, failed reads stop
     board.accesses = []; _ = monitor.poll(board)
     try expect(board.accesses.isEmpty && !monitor.enabled, "failure source kept polling")
 }
-test("image-only types read no strings/HTML/URL/file references") {
+test("image-only types read no strings/HTML/URL payloads") {
     let board = FakeBoard(); let monitor = ClipboardMonitor(); _ = monitor.enable(board)
-    board.types = ["public.html", "public.utf8-plain-text", "public.url", "public.file-url", "public.png"]
+    board.types = ["public.html", "public.utf8-plain-text", "public.url", "public.png"]
     board.bytes = try SyntheticImage.make(); board.count += 1
     guard case .image = monitor.poll(board) else { throw Failure(message: "supported image missing") }
     try expect(board.accesses.filter { $0.hasPrefix("public.") } == ["public.png"], "nonimage payload read")
+}
+test("copied Finder files/folders are not images even with icon representations") {
+    // Finder offers the item's icon as PNG/TIFF/JPEG next to its file reference.
+    let finder = ["public.file-url", "public.utf16-plain-text", "public.utf8-plain-text", "com.apple.icns",
+                  "public.tiff", "public.png", "public.jpeg"]
+    let board = FakeBoard(); let monitor = ClipboardMonitor(); _ = monitor.enable(board)
+    board.types = finder; board.bytes = try SyntheticImage.make(); board.count += 1
+    guard case .unsupported = monitor.poll(board) else { throw Failure(message: "file icon admitted by detection") }
+    try expect(monitor.enabled, "file copy stopped detection")
+    guard case .unsupported = monitor.explicitPaste(board) else { throw Failure(message: "file icon admitted by Paste") }
+    try expect(!board.accesses.contains { $0.hasPrefix("public.") || $0.hasPrefix("com.") }, "file payload read")
+}
+test("app image copies that also reference their file remain images") {
+    // Observed app copy: real JPEG/PNG/TIFF content plus a file URL, without Finder's icon type.
+    let board = FakeBoard(); let monitor = ClipboardMonitor(); _ = monitor.enable(board)
+    board.types = ["public.jpeg", "public.file-url", "public.tiff", "public.png"]
+    board.bytes = try SyntheticImage.make(); board.count += 1
+    guard case .image = monitor.poll(board) else { throw Failure(message: "app image copy rejected") }
+    try expect(board.accesses.filter { $0.hasPrefix("public.") } == ["public.png"], "unexpected payload read")
+    guard case .image = monitor.explicitPaste(board) else { throw Failure(message: "app image copy rejected by Paste") }
+    board.types = ["com.apple.icns", "public.png"]
+    guard case .image = monitor.explicitPaste(board) else { throw Failure(message: "icon type alone rejected image") }
 }
 test("native PNG/TIFF canonical equality, PNG conversion and JPEG dimensions") {
     let png = try ImageDecoder.prepare(SyntheticImage.make())

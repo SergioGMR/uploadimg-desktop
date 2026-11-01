@@ -12,6 +12,10 @@ Changes follow [Semantic Versioning 2.0.0](https://semver.org/).
 - The release procedure now states what Corresponding Source means for a Release: the tag source archive attached to the Release, with dependency sources pinned by `Cargo.lock` checksums on crates.io. It does not claim an exhaustive license audit.
 - Previously published beta.3 and beta.4 assets are unchanged.
 
+### Fixed
+
+- macOS clipboard detection and **Pegar imagen** no longer offer to share a file or folder copied in Finder. Finder adds the item's icon as PNG/TIFF/JPEG next to its file reference; a file reference together with Finder's icon type (`com.apple.icns`) is now unsupported, so image files copied in Finder are not shared through their icon either. App image copies that also carry a file reference remain supported.
+
 ## [0.1.0-beta.4] - 2026-10-10
 
 ### Changed
