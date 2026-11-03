@@ -3,7 +3,7 @@
 Changes follow [Semantic Versioning 2.0.0](https://semver.org/).
 `VERSION` identifies the distribution; application manifests hold its numeric base.
 
-## [0.1.0-beta.5] - Prepared
+## [0.1.0-beta.5] - 2026-11-03
 
 ### Changed
 
@@ -18,9 +18,11 @@ Changes follow [Semantic Versioning 2.0.0](https://semver.org/).
 
 ### Availability
 
-- Prepared macOS arm64 candidate, short version 0.1.0 and bundle build 5; publication and exact-source CI/artifact/download checks are pending. The Release is to attach the tag source archive (Corresponding Source) with the binaries.
-- The owner reported on 2026-11-01 that they tested updates and they work. This is owner-reported device evidence, not an independently observed check, and does not identify the exact steps or cases.
-- Otherwise GUI updates, automatic restart, Gatekeeper and recovery after a real filesystem installation failure remain unverified (NOT_RUN) for this candidate.
+- Published macOS arm64 beta, short version 0.1.0 and bundle build 5, from source `aa0f0fbba8faa7c71ff32686c146215c5c0c82df` on 2026-11-03 UTC. Exact-source CI passed 178 checks on macOS 26.6.2 arm64; two opt-in integration tests were skipped.
+- Ten assets: the nine reviewed CI artifacts plus the Corresponding Source archive `UploadIMG-0.1.0-beta.5-source.tar.gz`, byte-identical to a regenerated `git archive` of the tag. The nine artifacts passed signature/checksum/provenance/package checks, and anonymous public downloads of all ten matched the accepted files byte for byte. This closes the Corresponding Source verification that was pending until publication.
+- Known limitation: `THIRD-PARTY-NOTICES` lists 13 Rust crates (the objc2 family, block2, alloc-stdlib, selectors and dispatch2) without license text because the published crates ship no license file; a later version is planned to address it.
+- The owner reported on 2026-11-01 that they tested updates and they work. This is owner-reported device evidence, not an independently observed check, and does not identify the exact steps or cases. No headless replacement test was run for beta.5; the beta.4 headless test does not prove it.
+- GUI updates, automatic restart, preferences through the GUI, Gatekeeper and recovery after a real filesystem installation failure remain unverified (NOT_RUN).
 - Debug bundle with Apple ad-hoc signing; no Developer ID or notarization. Windows/Linux, Intel and other macOS versions remain unverified.
 
 ## [0.1.0-beta.4] - 2026-10-10

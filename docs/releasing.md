@@ -1,19 +1,18 @@
 # Release verified macOS artifacts
 
-The published version is **0.1.0-beta.4**, bundle build **4**, released on
-2026-10-10 at 23:11:22 UTC from source `1faedbca1cdc90669d2ebaafffbeaf770989fd3c`.
-The prepared candidate is **0.1.0-beta.5**, bundle build **5**; it is not yet
-published. Preserve every published tag and installer, including beta.1 through beta.4.
-Install beta.4 manually when upgrading from beta.1/beta.2,
+The published version is **0.1.0-beta.5**, bundle build **5**, released on
+2026-11-03 at 14:31:52 UTC from source `aa0f0fbba8faa7c71ff32686c146215c5c0c82df`.
+Preserve every published tag and installer, including beta.1 through beta.5.
+Install beta.5 manually when upgrading from beta.1/beta.2,
 which do not contain an updater. Beta.3 was the first updater-capable release.
-From beta.3, use **Buscar actualizaciones** and confirm the offered installation.
+From beta.3 or beta.4, use **Buscar actualizaciones** and confirm the offered installation.
 Commits, pushes, tags, secrets/settings changes, workflow execution, Releases
 and feed publication need explicit authorization in the delivery task.
 
 The user reported that the beta.2 DMG works, without an individual GUI case
 record. That evidence applies to installer SHA256
 `1a811ad7459ae9d69f923693052228812e2a11b2684c455d558620a1956e203b`,
-not to beta.3 or beta.4. Packaging, runtime, CI and download checks remain separate.
+not to beta.3, beta.4 or beta.5. Packaging, runtime, CI and download checks remain separate.
 
 The [beta.3 Release](https://github.com/SergioGMR/uploadimg-desktop/releases/tag/v0.1.0-beta.3)
 uses source `085264549565eb1c40261cfd959fcaa3f1c644c4` and the successful
@@ -45,15 +44,23 @@ for a limited publication. It neither marks that matrix passed nor applies to fu
 releases: independently observed graphical update/restart, Gatekeeper and real
 filesystem-failure recovery remain NOT_RUN.
 Exact-source CI, independent source/artifact review, the source archive and
-public-download verification are still required; preparing these documents establishes
-no beta.5 release, feed change or final-source runtime.
+public-download verification have now passed. The
+[beta.5 build](https://github.com/SergioGMR/uploadimg-desktop/actions/runs/41618021544),
+dispatched from the tag, ran 178 checks on macOS 26.6.2 arm64, with two opt-in
+integrations skipped. The Release carries ten assets: the nine CI artifacts plus
+`UploadIMG-0.1.0-beta.5-source.tar.gz`, byte-identical to a regenerated
+`git archive` of the tag. All ten public downloads matched the accepted files
+byte for byte, and package/signature checks were repeated on the public DMG.
+No headless replacement test was run for beta.5; the beta.4 one does not prove it.
+See [beta.5 release evidence](automatic-updates.md#beta5-release-evidence).
 
-Beta.4's post-publication documentation/feed change keeps the release source,
-tag and installers fixed at `1faedbca1cdc90669d2ebaafffbeaf770989fd3c`.
-`updates/beta.json` is the exact manifest downloaded from the beta.4 Release;
+The beta.5 post-publication documentation/feed change keeps the release source,
+tag and installers fixed at `aa0f0fbba8faa7c71ff32686c146215c5c0c82df`.
+`updates/beta.json` is the exact manifest downloaded from the beta.5 Release;
 channel activation requires a separately reviewed commit/push and remote endpoint
 verification, distinct from GUI acceptance. No rebuild or asset replacement is
-part of channel activation.
+part of channel activation. Beta.4 followed the same procedure for its own feed
+(see [beta.4 release evidence](automatic-updates.md#beta4-release-evidence)).
 
 ## 1. Review and check exact sources
 
@@ -95,9 +102,12 @@ Confirm all three files remain byte-identical in the mounted DMG and extracted u
 candidate. THIRD-PARTY-NOTICES is generated from `cargo metadata` (offline, `Cargo.lock`,
 `aarch64-apple-darwin`) by `python3 desktop/scripts/third-party-notices.py generate`;
 `desktop/scripts/test.sh` runs the generator with `--check`, so a dependency change
-requires regenerating and committing it. Previously published beta.4 tags and assets
-remain unchanged; these new resources apply to subsequent builds, not replacement beta.4
-installers.
+requires regenerating and committing it. Beta.5 is the first release to bundle them;
+previously published beta.1 through beta.4 tags and assets remain unchanged and are
+not replaced. Known limitation in beta.5: THIRD-PARTY-NOTICES lists 13 crates (the
+objc2 family, block2, alloc-stdlib, selectors and dispatch2) without license text
+because the published crates ship no license file; a later version is planned to
+address it.
 
 For every new binary distribution, provide recipients the exact **Corresponding
 Source**. For a Release, that is the source archive of the release tag (`git archive`
@@ -173,7 +183,8 @@ altered bytes, wrong key and version mismatch. That historical beta.4 fixture is
 separate from the published beta.4 artifacts. A new headless test replaced a
 disposable copy of published beta.3 with the exact beta.4 CI bundle, verified
 preserved bytes/modes and rejected altered signature/signed-version mismatch.
-The historical fixture result does not prove those artifacts.
+The historical fixture result does not prove those artifacts, and no equivalent
+replacement test exists for beta.5.
 See [the precise evidence boundary](automatic-updates.md#verified-local-boundary).
 
 Observe the exact version's startup, tray, preview, explicit sharing and opt-in
@@ -186,7 +197,7 @@ Do not use the owner's installed app as the experiment. Network/upload, CI and
 public download verification also remain separate evidence. Before publication,
 rebuild and package the final reviewed source after packaged documentation changes
 so receipts match it. Post-release documentation must identify the original tag;
-never rebuild beta.4 to replace its published assets. Corrections require a new version.
+never rebuild a published version (beta.4, beta.5) to replace its assets. Corrections require a new version.
 
 The [manual macOS arm64 workflow](../.github/workflows/build-macos.yml) fetches
 locked dependencies, runs checks and builds the custom bundle using Rust

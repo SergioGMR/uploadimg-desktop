@@ -1,9 +1,9 @@
 {
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRUkFmM1FWNGVaWUlXR3RBRDhjVjVMNGtrR0hYSm1pY0Y1WnA3VUh3MHc3QzNGRG9kMUZ3eGJpdzM1akMrdlVTbGUxNHEwaE8zYWxJY1BFY1ZOaGs5WkZwRXBlcjNjZFFRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkxNjcyNzQ5CWZpbGU6VXBsb2FkSU1HLTAuMS4wLWJldGEuNC1tYWNvcy1hcm02NC5hcHAudGFyLmd6CXZlcnNpb246MC4xLjAtYmV0YS40CjNYK3NxeEtESUdTaDRuSUR3cDFrN2VrSG55OHVyOUZ2OWNXbHlZdDRlRktoY24xT0ZDRUU2Nm5QdjVZaG5BQVAwSE5IMjQxeWgxL3dZYU5Ua2xKM0R3PT0K",
-      "url": "https://github.com/SergioGMR/uploadimg-desktop/releases/download/v0.1.0-beta.4/UploadIMG-0.1.0-beta.4-macos-arm64.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVRUkFmM1FWNGVaWUpSVlJYZG5rQkJGdGxXd1E3d3h1eWpnMUNzamFJMDROUkV6NFhjc1lSakd6azBadUl2bXlDNk9LRkFzcTNoR1NaWGttYTFqZ2hIdjBIUU93KzRxYmdnPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkzNzAxODg1CWZpbGU6VXBsb2FkSU1HLTAuMS4wLWJldGEuNS1tYWNvcy1hcm02NC5hcHAudGFyLmd6CXZlcnNpb246MC4xLjAtYmV0YS41CmoyUHR5TjhXYXU0VVZmTnVsT1VYemNrUE5Oc01HTm4rSHBtajAwb3A4QzFsaTBWR2JGU2xFRlAzdmFPaFdmbHN5S0dPQ0J5QTdHV2FsMVhJTmRYaEFBPT0K",
+      "url": "https://github.com/SergioGMR/uploadimg-desktop/releases/download/v0.1.0-beta.5/UploadIMG-0.1.0-beta.5-macos-arm64.app.tar.gz"
     }
   },
-  "version": "0.1.0-beta.4"
+  "version": "0.1.0-beta.5"
 }

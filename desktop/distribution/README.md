@@ -5,13 +5,15 @@ onto **Applications**. Eject the disk and open UploadIMG from Applications.
 Close the previous app first. UploadIMG lives in the menu bar; select
 **Abrir UploadIMG** to show its window and **Salir** to quit.
 
-This is the **0.1.0-beta.5** candidate, short version **0.1.0**, build **5**,
+This is **0.1.0-beta.5**, short version **0.1.0**, build **5**,
 debug profile. Beta.3 was the first updater-capable beta: install manually
 when upgrading from beta.1/beta.2, which do not contain an updater. The
 executable's `--version` option reports the full distribution version. See
-`RELEASE-NOTES.txt` for check limits; release, public feed and download checks
-are recorded separately. From beta.3 or beta.4, use **Buscar actualizaciones**
-and confirm the offered installation once the channel feed offers this version.
+`RELEASE-NOTES.txt` for check limits. The release was published on 2026-11-03
+UTC; all ten anonymous public downloads matched the accepted files. These
+repository notes were updated after publication; the published packages retain
+their tagged-source notes. From beta.3 or beta.4, use **Buscar actualizaciones**
+and confirm the offered installation.
 
 Clipboard detection starts **OFF** with a fresh or invalid preference. Explicit
 ON/OFF is remembered across normal restart and replacement of this app with
@@ -36,11 +38,10 @@ The owner reported on 2026-11-01 that they tested updates and they work; this
 is owner-reported, not an independently observed check, and does not identify the exact steps or cases.
 Otherwise GUI updates, automatic restart, preferences through the GUI, Gatekeeper,
 recovery after a real filesystem installation failure and another Mac remain
-unverified for this candidate. Exact-source CI,
-independent artifact review and download verification are pending. The headless
-replacement and CI results recorded for beta.4 do not prove this version. The
-plist minimum 15.4 is metadata; Intel, Windows/Linux and other macOS versions
-remain unverified.
+unverified. Exact-source CI passed 178 checks on macOS **26.6.2 arm64**. No
+headless replacement test was run for beta.5; the one recorded for beta.4 does
+not prove this version. The plist minimum 15.4 is metadata; Intel,
+Windows/Linux and other macOS versions remain unverified.
 
 ## License and source
 
@@ -48,11 +49,15 @@ Original UploadIMG Desktop material is licensed under GNU GPL version 3 only
 (GPL-3.0-only), without warranty. New builds include the full LICENSE, the project
 COPYRIGHT and THIRD-PARTY-NOTICES (licenses of the Rust dependencies) unchanged in
 UploadIMG.app/Contents/Resources; DMG and updater checks verify those resources.
+`THIRD-PARTY-NOTICES` lists 13 crates (objc2 family, block2, alloc-stdlib,
+selectors, dispatch2) without license text because the published crates ship no
+license file; a later version is planned to address it.
 Third-party components retain their own licenses and copyright notices,
 including the vendored GLib MIT files in the source tree.
 Recipients of new binary distributions must also receive access to the exact
 Corresponding Source under the GPL. For beta.5 it is the tag source archive
 `UploadIMG-0.1.0-beta.5-source.tar.gz`, attached to the same Release as the DMG;
 dependency sources come from crates.io as pinned by `desktop/Cargo.lock`
-(`cargo fetch --locked` in `desktop/`). The already published beta.4 packages and
+(`cargo fetch --locked` in `desktop/`). The published archive matched the tag
+archive after download. The already published beta.4 packages and
 their tagged installation notes are unchanged.

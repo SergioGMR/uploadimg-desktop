@@ -1,36 +1,38 @@
 # Automatic updates for macOS arm64
 
-**Published beta: 0.1.0-beta.4, released on 2026-10-10 UTC.** The exact-source
+**Published beta: 0.1.0-beta.5, released on 2026-11-03 UTC.** The exact-source
 macOS build workflow succeeded, the release was independently reviewed and all
-nine published assets were downloaded anonymously and verified. Install beta.4
+ten published assets were downloaded anonymously and verified. Install beta.5
 manually when upgrading from beta.1/beta.2, which do not contain an updater.
-Beta.3 was the first updater-capable release. From beta.3, use
+Beta.3 was the first updater-capable release. From beta.3 or beta.4, use
 **Buscar actualizaciones** and confirm the offered installation
 after resolving pending images/uploads. The repository manifest is the exact
-beta.4 Release manifest. Remote endpoint verification is a delivery gate distinct
+beta.5 Release manifest. Remote endpoint verification is a delivery gate distinct
 from live in-app GUI checks; neither is established by the repository copy alone.
 
 A historical headless macOS test performed real replacement of a disposable
 beta.3 bundle with a signed beta.4 fixture. That historical fixture is separate
-from the exact beta.4 release-artifact test described below.
+from the exact beta.4 release-artifact test described below, and neither is a
+beta.5 result.
 GUI update confirmation, automatic restart, Gatekeeper and recovery after an actual
 filesystem installation failure, and preferences through the GUI, remain **NOT_RUN**.
-The exact beta.4 headless replacement and public download checks passed without
-completing that GUI/recovery matrix. See [the release procedure](releasing.md)
+The exact beta.4 headless replacement and the public download checks of beta.4
+and beta.5 passed without completing that GUI/recovery matrix. See [the release procedure](releasing.md)
 for the version-specific limited rollout and future delivery gate.
 
-The prepared **0.1.0-beta.5** candidate (bundle build 5) is not published. Exact-source
-CI, independent source/artifact review and public-download verification remain
-pending; the published beta channel still targets beta.4, and no beta.5 feed
-activation or GUI updater result is established by this preparation. The owner
+Beta.5 (bundle build 5) was published with exact-source CI, independent
+source/artifact review and anonymous public-download verification; see
+[beta.5 release evidence](#beta5-release-evidence). The owner
 reported on 2026-11-01 that they tested updates and they work. That is
 owner-reported device evidence, not an independently observed check; it does not identify the exact steps or cases
-and does not complete the matrix: GUI update confirmation, automatic restart, Gatekeeper and
-recovery after an actual filesystem installation failure remain **NOT_RUN** for
-this candidate. See [the release procedure](releasing.md) for its delivery gate.
+and does not complete the matrix: GUI update confirmation, automatic restart,
+preferences through the GUI, Gatekeeper and recovery after an actual filesystem
+installation failure remain **NOT_RUN**. No headless replacement test was run for
+beta.5; the beta.4 one does not prove it. See [the release procedure](releasing.md)
+for its delivery gate.
 Beta.5 changes no updater runtime code, public key, bundle identifier or preference storage; its packaging only adds the legal resources.
 
-Beta.4 retains the stable bundle identifier and updater public key.
+Beta.4 and beta.5 retain the stable bundle identifier and updater public key.
 It restores only the macOS boolean `clipboardIntent` from the existing
 `UserDefaults` domain after normal restart or app replacement. Fresh or invalid
 preferences default OFF; an earlier stored choice is preserved. Pause is
@@ -90,6 +92,53 @@ Gatekeeper, a downloaded public Release, or recovery after an actual filesystem
 replacement failure. It did not modify the owner's installed application or
 publish beta.4. Those historical fixture receipts are separate from the
 reviewed beta.3 source/artifact and public-download receipts below.
+
+## Beta.5 release evidence
+
+The [beta.5 Release](https://github.com/SergioGMR/uploadimg-desktop/releases/tag/v0.1.0-beta.5)
+was published as a prerelease at 2026-11-03 14:31:52 UTC from source
+`aa0f0fbba8faa7c71ff32686c146215c5c0c82df` (annotated tag object `c8f892d`),
+bundle build 5. Its
+[exact-source build run](https://github.com/SergioGMR/uploadimg-desktop/actions/runs/41618021544),
+dispatched from the tag, passed 178 checks on macOS 26.6.2 arm64 with rustc
+1.92.0: 72 Rust, 25 Swift, 29 Node, 25 packaging, 19 notices and 8 version.
+Two opt-in integration tests were skipped in CI.
+
+The Release has ten assets: the nine CI artifacts (DMG, `provenance.json`,
+`SHA256SUMS`, updater archive and `.sig`, `beta.json`, `updater-provenance.json`,
+`UPDATER-SHA256SUMS`, `build-source.json`) plus the Corresponding Source archive
+`UploadIMG-0.1.0-beta.5-source.tar.gz`. The source archive is byte-identical to
+a regenerated `git archive` of the tag.
+
+An independent pre-publication review approved provenance, both checksum
+manifests and the updater signature, which was verified with the repository
+public key and rejected altered bytes, comment, key and version. It also
+approved ad-hoc codesigning, DMG integrity, a DMG app identical to the updater
+app, and bundled `LICENSE`, `COPYRIGHT` and `THIRD-PARTY-NOTICES` identical to
+the tag.
+
+All ten published assets were downloaded anonymously over HTTPS and matched the
+accepted files byte for byte; this includes the Corresponding Source archive,
+which closes the verification that was pending until publication. The public DMG
+mounted read-only; its app matched the updater app tree, deep/strict signing
+checks passed and the plist reported 0.1.0 / build 5. Local copies of the CI
+metadata and downloads are under `desktop/.build/release-beta5/`.
+**No headless replacement test was run for beta.5**; the beta.4 test above does
+not prove it.
+
+| Artifact | SHA256 |
+| --- | --- |
+| `UploadIMG-0.1.0-beta.5-macos-arm64.dmg` | `7e5f2f07260efbb6dc5d21328ec3a695785c466679070ee382dfedadad55135c` |
+| `UploadIMG-0.1.0-beta.5-macos-arm64.app.tar.gz` | `24030f36852a51ed525450e99cd73d6ead6ea75a0a8190ffda66e6c171b1e441` |
+| `UploadIMG-0.1.0-beta.5-source.tar.gz` | `76d492a981183e1822f57b619eed570ccbeb46bb989fc0d42c46b43e80296d1c` |
+
+Known limitation: `THIRD-PARTY-NOTICES` lists 13 crates (the objc2 family,
+block2, alloc-stdlib, selectors and dispatch2) without license text because the
+published crates ship no license file; a later version is planned to address it.
+GUI confirmation, restart, preferences through the GUI, Gatekeeper and actual
+filesystem-failure recovery remain unverified. The owner's 2026-11-01 report that
+updates work stays owner-reported. The documentation/feed commit does not change
+the published source tag or packages, and is not a new build.
 
 ## Beta.4 release evidence
 
@@ -225,11 +274,11 @@ cargo run --offline --locked --jobs 2 --manifest-path desktop/Cargo.toml \
 ```
 
 `updates/beta.json` is a byte-for-byte copy of the verified manifest downloaded
-from the beta.4 Release. Its production endpoint is
+from the beta.5 Release. Its production endpoint is
 `https://raw.githubusercontent.com/SergioGMR/uploadimg-desktop/main/updates/beta.json`;
-it contains only `platforms.darwin-aarch64` and the exact published beta.4 archive
+it contains only `platforms.darwin-aarch64` and the exact published beta.5 archive
 URL/signature contents. This repository copy has SHA256
-`c997a396c411de6d830188d029cc51d04feb5cb71208b0eaa33b308faee82d9d`.
+`ca32f67d7a0d2edc5b40e3ed1712562a24c6f53618e85ec6ace1c3476221a14d`.
 Channel activation requires a reviewed commit/push and raw-endpoint verification.
 That gate is separate from a live in-app GUI query; copying this verified manifest
 does not establish either result. `updates/stable.json` remains absent until a
